@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#05070b" />
+      <stop offset="55%" stop-color="#0b1118" />
+      <stop offset="100%" stop-color="#061f24" />
+    </linearGradient>
+    <linearGradient id="accentGrid" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(27,185,165,0)" />
+      <stop offset="50%" stop-color="rgba(27,185,165,0.4)" />
+      <stop offset="100%" stop-color="rgba(27,185,165,0)" />
+    </linearGradient>
+    <linearGradient id="glow" x1="0.3" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="rgba(27,185,165,0.55)" />
+      <stop offset="100%" stop-color="rgba(27,185,165,0)" />
+    </linearGradient>
+    <clipPath id="mask">
+      <rect x="0" y="0" width="1920" height="1080" rx="0" ry="0" />
+    </clipPath>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bgGradient)" />
+  <g opacity="0.45" clip-path="url(#mask)">
+    <g stroke="url(#accentGrid)" stroke-width="1">
+      <path d="M-400 200 L2320 200" />
+      <path d="M-400 400 L2320 400" />
+      <path d="M-400 600 L2320 600" />
+      <path d="M-400 800 L2320 800" />
+      <path d="M-400 1000 L2320 1000" />
+      <path d="M200 0 L200 1180" />
+      <path d="M600 0 L600 1180" />
+      <path d="M1000 0 L1000 1180" />
+      <path d="M1400 0 L1400 1180" />
+      <path d="M1800 0 L1800 1180" />
+    </g>
+    <path d="M-200 1080 L520 180 L1080 1080 Z" fill="url(#glow)" />
+    <path d="M720 1080 L1280 240 L1880 1080 Z" fill="rgba(27,185,165,0.18)" />
+  </g>
+  <g fill="#0f1820" opacity="0.45">
+    <path d="M0 980 Q640 780 1280 980 T2560 980 V1080 H0 Z" />
+  </g>
+</svg>

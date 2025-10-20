@@ -1,0 +1,64 @@
+{
+  "site": {
+    "brandZh": "木纪元智造",
+    "brandEn": "ErawoodFabrication",
+    "logo": "assets/logo.svg",
+    "theme": { "accent": "#1BB9A5", "bg": "#0B0F14" },
+    "hero": {
+      "image": "assets/hero/hero.svg",
+      "mobileImage": "assets/hero/hero-m.svg",
+      "overlay": 0.35,
+      "focal": { "x": 0.5, "y": 0.45 },
+      "alt": {
+        "zh": "木纪元智造模块化木屋",
+        "en": "Erawood Fabrication modular timber homes"
+      }
+    },
+    "nav": ["首页", "产品探索", "关于", "联系我们"],
+    "about": {
+      "zh": "我们专注于以可持续林木为核心材料的模块化建筑体系，融合智能制造与东方工艺的简约美学，为全球旅居、商业与度假场景提供全栈交付能力。",
+      "en": "We craft modular timber architecture with sustainable forestry, precision robotics, and calming spatial experiences tailored to hospitality, retail, and resort destinations worldwide."
+    },
+    "contact": {
+      "address": "中国·上海市黄浦区外滩金融中心B座28F",
+      "phone": "+86 21 5555 0101",
+      "email": "info@erawoodfabrication.com",
+      "social": {
+        "youtube": "https://www.youtube.com/@erawoodfabrication"
+      }
+    },
+    "footer": "© Erawood Fabrication"
+  },
+  "paramTypes": [
+    { "key": "尺寸", "unit": "mm" },
+    { "key": "建筑面积", "unit": "㎡" },
+    { "key": "模块数", "unit": "" },
+    { "key": "结构材质", "unit": "" },
+    { "key": "保温等级", "unit": "" },
+    { "key": "抗风雪等级", "unit": "" },
+    { "key": "供能", "unit": "" },
+    { "key": "认证", "unit": "" }
+  ],
+  "categories": ["模块小屋", "拖挂房", "A-frame", "景观构筑", "样板舱"],
+  "products": [
+    {
+      "id": "p01",
+      "name": "Capwell 01",
+      "slug": "capwell-01",
+      "cover": "assets/products/capwell-01/cover.svg",
+      "images": [
+        "assets/products/capwell-01/1.svg",
+        "assets/products/capwell-01/2.svg"
+      ],
+      "type": "模块小屋",
+      "categories": ["模块小屋"],
+      "tags": ["零碳"],
+      "params": {
+        "尺寸": "3000×8000",
+        "建筑面积": "24",
+        "结构材质": "胶合木"
+      },
+      "intro": "紧凑型零碳木屋"
+    }
+  ]
+}
