@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>木纪元智造 · Erawood Fabrication</title>
+    <meta name="description" content="木纪元智造以智能木结构打造国际化高端建筑体验，提供模块化小屋、景观构筑及可持续旅居解决方案。" />
+    <meta property="og:title" content="木纪元智造" />
+    <meta property="og:description" content="Erawood Fabrication · 智能木结构与全球交付能力。" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="./index.html" />
+    <meta property="og:image" content="./assets/hero/hero.svg" />
+    <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div id="app" data-theme-bg="#0B0F14">
+      <header class="site-header" id="top">
+        <div class="site-brand">
+          <a href="#home" class="brand-link" aria-label="Erawood Fabrication">
+            <img class="brand-logo" src="assets/logo.svg" alt="Erawood Fabrication" />
+            <span class="brand-text">
+              <strong class="brand-zh">木纪元智造</strong>
+              <span class="brand-en">ErawoodFabrication</span>
+            </span>
+          </a>
+        </div>
+        <button class="nav-toggle" aria-expanded="false" aria-controls="primary-nav">
+          <span class="sr-only">Toggle navigation</span>
+          <span></span><span></span>
+        </button>
+        <nav id="primary-nav" class="primary-nav" aria-label="Primary">
+          <ul>
+            <li><a href="#home" data-i18n="nav.home">首页</a></li>
+            <li><a href="#products" data-i18n="nav.products">产品探索</a></li>
+            <li><a href="#about" data-i18n="nav.about">关于</a></li>
+            <li><a href="#contact" data-i18n="nav.contact">联系我们</a></li>
+          </ul>
+        </nav>
+        <div class="header-actions">
+          <button class="lang-toggle" id="langToggle" aria-label="Switch language">
+            <span data-lang="zh" class="active">中文</span>
+            <span data-lang="en">EN</span>
+          </button>
+        </div>
+      </header>
+      <main>
+        <section id="home" class="section hero" aria-labelledby="heroTitle">
+          <div class="hero-media">
+            <picture>
+              <source media="(max-width: 767px)" srcset="assets/hero/hero-m.svg" type="image/svg+xml" />
+              <img id="heroImage" src="assets/hero/hero.svg" alt="Erawood Fabrication" loading="lazy" />
+            </picture>
+            <div class="hero-overlay" aria-hidden="true"></div>
+          </div>
+          <div class="hero-content">
+            <p class="hero-tag" data-i18n="hero.tag">智序木构 · 全栈交付</p>
+            <h1 id="heroTitle" data-i18n="hero.title">木纪元智造</h1>
+            <p class="hero-sub" data-i18n="hero.subtitle">以AI与机器人重塑可持续木结构建筑，让自然与科技共鸣。</p>
+            <div class="hero-cta">
+              <a class="button accent" href="#products" data-i18n="hero.cta">探索产品矩阵</a>
+              <a class="button ghost" href="#contact" data-i18n="hero.secondary">联系顾问</a>
+            </div>
+          </div>
+        </section>
+        <section id="products" class="section products" aria-labelledby="productsTitle">
+          <div class="container section-header">
+            <div>
+              <p class="eyebrow" data-i18n="products.eyebrow">Product Atlas</p>
+              <h2 id="productsTitle" data-i18n="products.title">产品探索</h2>
+            </div>
+          </div>
+          <div class="container products-toolbar" role="toolbar" aria-label="产品筛选">
+            <div class="chip-bar" id="categoryChips" role="list"></div>
+            <div class="search-box">
+              <label class="sr-only" for="productSearch">Search products</label>
+              <input type="search" id="productSearch" placeholder="搜索名称 / 标签" data-i18n-placeholder-zh="搜索名称 / 标签" data-i18n-placeholder-en="Search name / tag" />
+            </div>
+          </div>
+          <div class="container">
+            <div class="products-grid" id="productsGrid" aria-live="polite"></div>
+          </div>
+        </section>
+        <section id="about" class="section about" aria-labelledby="aboutTitle">
+          <div class="container">
+            <div class="grid two">
+              <div>
+                <p class="eyebrow" data-i18n="about.eyebrow">About</p>
+                <h2 id="aboutTitle" data-i18n="about.title">关于我们</h2>
+              </div>
+              <div>
+                <p id="aboutContent" class="copy"></p>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section id="contact" class="section contact" aria-labelledby="contactTitle">
+          <div class="container grid two">
+            <div>
+              <p class="eyebrow" data-i18n="contact.eyebrow">Contact</p>
+              <h2 id="contactTitle" data-i18n="contact.title">联系我们</h2>
+              <p class="copy" id="contactAddress"></p>
+            </div>
+            <div class="contact-list">
+              <a id="contactPhone" href="tel:+861234567890" class="contact-item"></a>
+              <a id="contactEmail" href="mailto:info@example.com" class="contact-item"></a>
+              <a id="contactYoutube" href="#" class="contact-item" target="_blank" rel="noopener"></a>
+            </div>
+          </div>
+        </section>
+      </main>
+      <footer class="site-footer">
+        <div class="container">
+          <p id="footerText">© Erawood Fabrication</p>
+          <a class="top-button" href="#top" id="backToTop" aria-label="Back to top">⇧</a>
+        </div>
+      </footer>
+    </div>
+
+    <div id="loginModal" class="login-modal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="login-panel">
+        <form id="loginForm">
+          <label class="sr-only" for="adminPassword">Password</label>
+          <input type="password" id="adminPassword" autocomplete="current-password" />
+        </form>
+      </div>
+    </div>
+
+    <div id="lightbox" class="lightbox" aria-hidden="true" role="dialog" aria-modal="true">
+      <button class="lightbox-close" aria-label="Close">×</button>
+      <div class="lightbox-track">
+        <button class="lightbox-prev" aria-label="Previous">‹</button>
+        <div class="lightbox-frame">
+          <img src="" alt="" />
+        </div>
+        <button class="lightbox-next" aria-label="Next">›</button>
+      </div>
+    </div>
+
+    <script type="module" src="js/store.js"></script>
+    <script type="module" src="js/router.js"></script>
+    <script type="module" src="js/gallery.js"></script>
+    <script type="module">
+      import { Store } from './js/store.js';
+      import { initRouter } from './js/router.js';
+      import { initGallery } from './js/gallery.js';
+
+      const appEl = document.getElementById('app');
+      const heroImage = document.getElementById('heroImage');
+      const heroSource = document.querySelector('.hero-media source');
+      const defaultHeroDesktop = heroImage.getAttribute('src');
+      const defaultHeroMobile = heroSource?.getAttribute('srcset') || defaultHeroDesktop;
+      const heroOverlay = document.querySelector('.hero-overlay');
+      const brandZhEl = document.querySelector('.brand-zh');
+      const brandEnEl = document.querySelector('.brand-en');
+      const aboutContent = document.getElementById('aboutContent');
+      const contactAddress = document.getElementById('contactAddress');
+      const contactPhone = document.getElementById('contactPhone');
+      const contactEmail = document.getElementById('contactEmail');
+      const contactYoutube = document.getElementById('contactYoutube');
+      const footerText = document.getElementById('footerText');
+      const langToggle = document.getElementById('langToggle');
+      const searchInput = document.getElementById('productSearch');
+      const productsToolbar = document.querySelector('.products-toolbar');
+      const navLinks = document.querySelectorAll('.primary-nav a');
+      const heroMediaQuery = window.matchMedia('(max-width: 767px)');
+
+      const langStrings = {
+        zh: {
+          hero: {
+            tag: '智序木构 · 全栈交付',
+            title: '木纪元智造',
+            subtitle: '以AI与机器人重塑可持续木结构建筑，让自然与科技共鸣。',
+            cta: '探索产品矩阵',
+            secondary: '联系顾问'
+          },
+          nav: { home: '首页', products: '产品探索', about: '关于', contact: '联系我们' },
+          products: { eyebrow: 'Product Atlas', title: '产品探索' },
+          filters: { label: '产品筛选', all: '全部' },
+          about: { eyebrow: 'About', title: '关于我们' },
+          contact: { eyebrow: 'Contact', title: '联系我们' }
+        },
+        en: {
+          hero: {
+            tag: 'Orchestrated Timber · Full-stack Delivery',
+            title: 'Erawood Fabrication',
+            subtitle: 'AI-directed timber engineering for regenerative destinations across the globe.',
+            cta: 'Discover Collection',
+            secondary: 'Talk to us'
+          },
+          nav: { home: 'Home', products: 'Products', about: 'About', contact: 'Contact' },
+          products: { eyebrow: 'Product Atlas', title: 'Product Exploration' },
+          filters: { label: 'Product filters', all: 'All' },
+          about: { eyebrow: 'About', title: 'About Us' },
+          contact: { eyebrow: 'Contact', title: 'Contact Us' }
+        }
+      };
+
+      function guessMime(path = '') {
+        const ext = path.split('.').pop().toLowerCase();
+        const mapping = {
+          svg: 'image/svg+xml',
+          png: 'image/png',
+          jpg: 'image/jpeg',
+          jpeg: 'image/jpeg',
+          webp: 'image/webp',
+          avif: 'image/avif'
+        };
+        return mapping[ext] || '';
+      }
+
+      function applyLanguageStrings(lang) {
+        const strings = langStrings[lang];
+        document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+        document.querySelectorAll('[data-i18n]').forEach((node) => {
+          const path = node.getAttribute('data-i18n').split('.');
+          let value = strings;
+          for (const key of path) {
+            if (value && key in value) {
+              value = value[key];
+            }
+          }
+          if (typeof value === 'string') {
+            node.textContent = value;
+          }
+        });
+        document.querySelectorAll('[data-i18n-placeholder-zh]').forEach((input) => {
+          input.placeholder = lang === 'zh' ? input.dataset.i18nPlaceholderZh : input.dataset.i18nPlaceholderEn;
+        });
+        if (productsToolbar) {
+          productsToolbar.setAttribute('aria-label', strings.filters.label);
+        }
+        langToggle.querySelectorAll('span').forEach((span) => {
+          span.classList.toggle('active', span.dataset.lang === lang);
+        });
+      }
+
+      langToggle.addEventListener('click', () => {
+        const next = Store.getLanguage() === 'zh' ? 'en' : 'zh';
+        Store.setLanguage(next);
+      });
+
+      searchInput.addEventListener('input', (event) => {
+        Store.setSearch(event.target.value.trim());
+      });
+
+      Store.on('languagechange', ({ detail }) => {
+        applyLanguageStrings(detail);
+        const { site } = Store.getState();
+        if (site?.hero) {
+          const alt = detail === 'zh' ? site.hero.alt?.zh : site.hero.alt?.en;
+          heroImage.alt = alt || heroImage.alt;
+        }
+        initRouter.updateLabels(detail);
+        initGallery.renderProducts();
+      });
+
+      Store.on('filterchange', ({ detail }) => {
+        if (searchInput !== document.activeElement) {
+          searchInput.value = detail.search || '';
+        }
+      });
+
+      Store.on('datachange', () => {
+        const { site } = Store.getState();
+        if (!site) return;
+        brandZhEl.textContent = site.brandZh;
+        brandEnEl.textContent = site.brandEn;
+        const heroMedia = site.hero || {};
+        const heroDesktop = heroMedia.image || defaultHeroDesktop;
+        const heroMobile = heroMedia.mobileImage || defaultHeroMobile;
+        if (heroSource) {
+          heroSource.srcset = heroMobile || '';
+          const type = guessMime(heroMobile);
+          if (type) {
+            heroSource.type = type;
+          } else {
+            heroSource.removeAttribute('type');
+          }
+        }
+        heroImage.src = heroMediaQuery.matches ? heroMobile : heroDesktop;
+        const altText = Store.getLanguage() === 'zh' ? heroMedia.alt?.zh : heroMedia.alt?.en;
+        heroImage.alt = altText || 'Erawood Fabrication hero';
+        heroOverlay.style.setProperty('--hero-overlay', heroMedia.overlay ?? 0.35);
+        appEl.style.setProperty('--accent', site.theme?.accent || '#1BB9A5');
+        appEl.style.setProperty('--bg-base', site.theme?.bg || '#0B0F14');
+        aboutContent.textContent = Store.getLanguage() === 'zh' ? site.about.zh : site.about.en;
+        contactAddress.textContent = site.contact.address;
+        contactPhone.textContent = site.contact.phone;
+        contactPhone.href = `tel:${site.contact.phone.replace(/\s+/g, '')}`;
+        contactEmail.textContent = site.contact.email;
+        contactEmail.href = `mailto:${site.contact.email}`;
+        contactYoutube.textContent = 'YouTube';
+        contactYoutube.href = site.contact.social.youtube;
+        footerText.textContent = site.footer;
+        navLinks.forEach((link, index) => {
+          if (site.nav[index]) {
+            link.textContent = site.nav[index];
+          }
+        });
+        initGallery.renderFilters();
+        initGallery.renderProducts(true);
+      });
+
+      Store.load().then(() => {
+        applyLanguageStrings(Store.getLanguage());
+        initRouter.start();
+        initGallery.mount();
+        heroMediaQuery.addEventListener('change', () => {
+          const { site } = Store.getState();
+          if (!site) return;
+          const heroDesktopNext = site.hero.image || defaultHeroDesktop;
+          const heroMobileNext = site.hero.mobileImage || defaultHeroMobile;
+          if (heroSource) {
+            heroSource.srcset = heroMobileNext || '';
+            const type = guessMime(heroMobileNext);
+            if (type) {
+              heroSource.type = type;
+            } else {
+              heroSource.removeAttribute('type');
+            }
+          }
+          heroImage.src = heroMediaQuery.matches ? heroMobileNext : heroDesktopNext;
+        });
+      }).catch((error) => console.error('数据加载失败', error));
+    </script>
+    <script type="module" src="js/admin.js"></script>
+  </body>
+</html>
