@@ -65,6 +65,18 @@ if (isAdminPage && requireAuth()) {
   initAdminApp();
 }
 
+function slugify(value = '') {
+  const safe = value
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return safe;
+}
+
 function initAdminApp() {
   const adminNav = document.querySelectorAll('.admin-nav button');
   const sections = document.querySelectorAll('.admin-section');
@@ -353,7 +365,7 @@ function initAdminApp() {
     container.innerHTML = '';
     container.classList.add('form-section');
     const title = document.createElement('h3');
-    title.textContent = '参数填写';
+    title.textContent = '参数';
     title.className = 'section-label';
     const grid = document.createElement('div');
     grid.className = 'param-grid';
@@ -382,7 +394,7 @@ function initAdminApp() {
     container.innerHTML = '';
     container.classList.add('form-section');
     const mediaTitle = document.createElement('h3');
-    mediaTitle.textContent = '图片管理';
+    mediaTitle.textContent = '图片';
     mediaTitle.className = 'section-label';
 
     const coverField = document.createElement('div');
@@ -532,6 +544,7 @@ function initAdminApp() {
     container.append(mediaTitle, coverField, folderField, collection, actions);
   }
 
+
   function editProduct(id) {
     const product = pendingProducts.find((item) => item.id === id) || null;
     selectedProductId = id;
@@ -540,86 +553,117 @@ function initAdminApp() {
       renderEditorPlaceholder();
       return;
     }
+
     const form = document.createElement('form');
-    form.className = 'product-editor-form';
+    form.className = 'product-editor-form compact';
     form.addEventListener('submit', (event) => event.preventDefault());
 
     const createField = (labelText, value, onInput, options = {}) => {
       const field = document.createElement('div');
       field.className = 'form-field';
-      if (options.full) {
-        field.classList.add('form-field--full');
-      }
       const label = document.createElement('label');
       label.textContent = labelText;
-      const input = document.createElement(options.textarea ? 'textarea' : 'input');
-      if (options.type) input.type = options.type;
-      if (options.textarea) input.rows = options.rows || 3;
+      const input = document.createElement(options.multiline ? 'textarea' : 'input');
+      if (!options.multiline) {
+        input.type = options.type || 'text';
+      }
       input.value = value || '';
+      if (options.placeholder) {
+        input.placeholder = options.placeholder;
+      }
+      if (options.rows) {
+        input.rows = options.rows;
+      }
+      if (options.required) {
+        input.required = true;
+      }
       input.addEventListener('input', () => onInput(input.value));
       field.append(label, input);
       return field;
     };
 
-    const idField = createField('ID', product.id, (value) => {
-      product.id = value;
-    });
-    const nameField = createField('名称', product.name, (value) => {
-      product.name = value;
-      renderProducts();
-    });
-    const slugField = createField('Slug', product.slug, (value) => {
-      product.slug = value;
-    });
-    const typeField = createField('类型', product.type, (value) => {
-      product.type = value;
-    });
-    const tagsField = createField('标签（逗号分隔）', (product.tags || []).join(','), (value) => {
-      product.tags = value.split(',').map((item) => item.trim()).filter(Boolean);
-    });
-    const introField = createField('简介', product.intro, (value) => {
-      product.intro = value;
-    }, { textarea: true, rows: 4, full: true });
+    const meta = document.createElement('div');
+    meta.className = 'product-meta';
+    const metaId = document.createElement('span');
+    metaId.textContent = `ID：${product.id}`;
+    const metaSlug = document.createElement('span');
+    const updateSlugMeta = () => {
+      metaSlug.textContent = `Slug：${product.slug || '自动生成'}`;
+    };
+    updateSlugMeta();
+    meta.append(metaId, metaSlug);
 
-    const categoryField = document.createElement('div');
-    categoryField.className = 'form-field form-field--full';
-    const categoryLabel = document.createElement('label');
-    categoryLabel.textContent = '所属分类';
-    const categorySelect = document.createElement('div');
-    categorySelect.className = 'tag-input';
-    data.categories.forEach((category) => {
-      const option = document.createElement('label');
-      option.style.display = 'flex';
-      option.style.alignItems = 'center';
-      option.style.gap = '6px';
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = product.categories?.includes(category);
-      checkbox.addEventListener('change', () => {
-        product.categories = product.categories || [];
-        if (checkbox.checked) {
-          if (!product.categories.includes(category)) {
-            product.categories.push(category);
-          }
-        } else {
-          product.categories = product.categories.filter((item) => item !== category);
+    const nameField = createField(
+      '产品名称',
+      product.name,
+      (value) => {
+        product.name = value;
+        const generated = slugify(value);
+        if (generated) {
+          product.slug = generated;
         }
+        updateSlugMeta();
+        renderProducts();
+      },
+      { placeholder: 'Capwell 01', required: true }
+    );
+    nameField.classList.add('form-field--full');
+
+    const head = document.createElement('div');
+    head.className = 'product-editor-top';
+    head.append(nameField, meta);
+
+    const categorySection = document.createElement('div');
+    categorySection.className = 'form-section category-section';
+    const categoryTitle = document.createElement('h3');
+    categoryTitle.className = 'section-label';
+    categoryTitle.textContent = '所属类别';
+    const chipList = document.createElement('div');
+    chipList.className = 'chip-list';
+    if (!data.categories.length) {
+      const empty = document.createElement('p');
+      empty.className = 'field-note';
+      empty.textContent = '尚未创建任何分类。';
+      chipList.appendChild(empty);
+    } else {
+      data.categories.forEach((category) => {
+        const chip = document.createElement('label');
+        chip.className = 'chip-option';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = product.categories?.includes(category);
+        checkbox.addEventListener('change', () => {
+          product.categories = product.categories || [];
+          if (checkbox.checked) {
+            if (!product.categories.includes(category)) {
+              product.categories.push(category);
+            }
+          } else {
+            product.categories = product.categories.filter((item) => item !== category);
+          }
+        });
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = category;
+        chip.append(checkbox, labelSpan);
+        chipList.appendChild(chip);
       });
-      const span = document.createElement('span');
-      span.textContent = category;
-      option.append(checkbox, span);
-      categorySelect.appendChild(option);
-    });
-    categoryField.append(categoryLabel, categorySelect);
+    }
+    categorySection.append(categoryTitle, chipList);
 
     const paramsContainer = document.createElement('div');
-    paramsContainer.className = 'form-section form-field--full';
+    paramsContainer.className = 'param-section';
     createParamFields(product, paramsContainer);
 
+    const grouped = document.createElement('div');
+    grouped.className = 'product-editor-columns';
+    grouped.append(categorySection, paramsContainer);
+
     const imagesContainer = document.createElement('div');
-    imagesContainer.className = 'form-section form-field--full';
+    imagesContainer.className = 'media-section';
     createImageList(product, imagesContainer);
 
+    const actions = document.createElement('div');
+    actions.className = 'product-editor-actions';
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
     deleteBtn.textContent = '删除产品';
@@ -634,29 +678,20 @@ function initAdminApp() {
         renderProducts();
       }
     });
+    actions.append(deleteBtn);
 
-    form.append(
-      idField,
-      nameField,
-      slugField,
-      typeField,
-      tagsField,
-      introField,
-      categoryField,
-      paramsContainer,
-      imagesContainer,
-      deleteBtn
-    );
+    form.append(head, grouped, imagesContainer, actions);
 
     productEditor.appendChild(form);
   }
 
   addProductBtn.addEventListener('click', () => {
     const id = `p${Date.now()}`;
+    const fallbackSlug = slugify('新产品') || id;
     const newProduct = {
       id,
       name: '新产品',
-      slug: `product-${Date.now()}`,
+      slug: fallbackSlug,
       cover: 'assets/products/new/cover.svg',
       imageFolder: '',
       images: [],
