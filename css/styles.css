@@ -1000,7 +1000,11 @@ img {
   display: grid;
   grid-template-columns: minmax(240px, 320px) 1fr;
   gap: clamp(20px, 3vw, 36px);
-  align-items: start;
+  align-items: stretch;
+}
+
+.products-admin-layout > * {
+  height: 100%;
 }
 
 .product-index {
@@ -1029,6 +1033,12 @@ img {
   border: 1px solid rgba(255, 255, 255, 0.04);
   padding: clamp(18px, 2.5vw, 32px);
   min-height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-editor > form {
+  flex: 1;
 }
 
 .editor-placeholder {
@@ -1100,6 +1110,11 @@ img {
   border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
+.specs-section {
+  padding: 16px;
+  gap: 16px;
+}
+
 .form-field {
   display: flex;
   flex-direction: column;
@@ -1169,12 +1184,6 @@ img {
   gap: 10px;
 }
 
-.product-editor-columns {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-
 .product-index .sortable-item.active,
 .product-index .sortable-item:focus-visible {
   border-color: rgba(27, 185, 165, 0.45);
@@ -1191,61 +1200,6 @@ img {
 
 .product-index .sortable-item:active {
   transform: scale(0.99);
-}
-
-.image-chip-list {
-  display: grid;
-  gap: 10px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.image-chip {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.image-chip span {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.85rem;
-}
-
-.image-chip-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.image-chip-actions button {
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  transition: background var(--transition), border-color var(--transition), color var(--transition);
-}
-
-.image-chip-actions button:disabled {
-  border-color: rgba(27, 185, 165, 0.4);
-  background: rgba(27, 185, 165, 0.12);
-  color: var(--accent);
-}
-
-.image-chip-actions button:hover:not(:disabled),
-.image-chip-actions button:focus-visible {
-  border-color: rgba(27, 185, 165, 0.5);
-  background: rgba(27, 185, 165, 0.15);
-  color: var(--accent);
 }
 
 .product-editor-actions {
@@ -1279,6 +1233,18 @@ img {
   gap: 14px;
 }
 
+.param-grid--dense {
+  gap: 12px;
+}
+
+.param-item--category {
+  grid-column: 1 / -1;
+}
+
+.param-item--category select {
+  min-height: 44px;
+}
+
 .param-grid .param-item {
   display: grid;
   gap: 6px;
@@ -1286,6 +1252,47 @@ img {
 
 .images-collection {
   display: block;
+}
+
+.image-pill-list {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.image-pill {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.image-pill[data-state='cover'] {
+  border-color: rgba(27, 185, 165, 0.6);
+  background: rgba(27, 185, 165, 0.08);
+  color: var(--accent);
+}
+
+.image-pill-path {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.image-pill-badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(27, 185, 165, 0.18);
+  color: var(--accent);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .data-panel {

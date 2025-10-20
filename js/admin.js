@@ -384,12 +384,57 @@ function initAdminApp() {
 
   function createParamFields(product, container) {
     container.innerHTML = '';
-    container.classList.add('form-section');
+    container.classList.add('form-section', 'specs-section');
+
     const title = document.createElement('h3');
-    title.textContent = '参数';
+    title.textContent = '类别与参数';
     title.className = 'section-label';
+
     const grid = document.createElement('div');
-    grid.className = 'param-grid';
+    grid.className = 'param-grid param-grid--dense';
+
+    const categoryBlock = document.createElement('div');
+    categoryBlock.className = 'param-item param-item--category';
+
+    const categoryLabel = document.createElement('label');
+    const categorySelect = document.createElement('select');
+    const categorySelectId = `category-${product.id}`;
+    categoryLabel.setAttribute('for', categorySelectId);
+    categoryLabel.textContent = '所属类别';
+
+    categorySelect.id = categorySelectId;
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = data.categories.length ? '请选择分类' : '请先创建分类';
+    categorySelect.appendChild(placeholderOption);
+
+    const currentCategory = product.categories?.[0] || '';
+    data.categories.forEach((category) => {
+      const option = document.createElement('option');
+      option.value = category;
+      option.textContent = category;
+      categorySelect.appendChild(option);
+    });
+
+    categorySelect.value = currentCategory;
+    categorySelect.disabled = !data.categories.length;
+    categorySelect.addEventListener('change', () => {
+      const value = categorySelect.value;
+      product.categories = value ? [value] : [];
+      renderProducts();
+    });
+
+    categoryBlock.append(categoryLabel, categorySelect);
+    grid.appendChild(categoryBlock);
+
+    if (!data.paramTypes.length) {
+      const empty = document.createElement('p');
+      empty.className = 'field-note';
+      empty.textContent = '暂无参数类型，请先在上方模块中创建。';
+      container.append(title, grid, empty);
+      return;
+    }
+
     data.paramTypes.forEach((param) => {
       const block = document.createElement('div');
       block.className = 'param-item';
@@ -408,6 +453,7 @@ function initAdminApp() {
       block.append(label, input);
       grid.appendChild(block);
     });
+
     container.append(title, grid);
   }
 
@@ -484,32 +530,21 @@ function initAdminApp() {
         return;
       }
       const list = document.createElement('ul');
-      list.className = 'image-chip-list';
-      images.forEach((imgPath, index) => {
+      list.className = 'image-pill-list';
+      images.forEach((imgPath) => {
         const item = document.createElement('li');
-        item.className = 'image-chip';
+        item.className = 'image-pill';
         const label = document.createElement('span');
+        label.className = 'image-pill-path';
         label.textContent = imgPath;
-        const actions = document.createElement('div');
-        actions.className = 'image-chip-actions';
-        const makeCover = document.createElement('button');
-        makeCover.type = 'button';
-        makeCover.textContent = product.cover === imgPath ? '封面' : '设为封面';
-        makeCover.disabled = product.cover === imgPath;
-        makeCover.addEventListener('click', () => {
-          product.cover = imgPath;
-          coverInput.value = product.cover;
-          renderImages();
-        });
-        const remove = document.createElement('button');
-        remove.type = 'button';
-        remove.textContent = '移除';
-        remove.addEventListener('click', () => {
-          product.images.splice(index, 1);
-          renderImages();
-        });
-        actions.append(makeCover, remove);
-        item.append(label, actions);
+        item.append(label);
+        if (product.cover === imgPath) {
+          item.dataset.state = 'cover';
+          const badge = document.createElement('span');
+          badge.className = 'image-pill-badge';
+          badge.textContent = '封面';
+          item.append(badge);
+        }
         list.appendChild(item);
       });
       collection.appendChild(list);
@@ -531,6 +566,10 @@ function initAdminApp() {
         product.imageFolder = normalized;
         product.images = images;
         folderInput.value = normalized;
+        if (!product.cover && images.length) {
+          product.cover = images[0];
+          coverInput.value = product.cover;
+        }
         renderImages();
         folderStatus.textContent = images.length ? `已载入 ${images.length} 张图片` : '文件夹内未检测到图片';
         folderStatus.dataset.state = images.length ? 'success' : 'warning';
@@ -653,47 +692,8 @@ function initAdminApp() {
     head.className = 'product-editor-top';
     head.append(nameField);
 
-    const categorySection = document.createElement('div');
-    categorySection.className = 'form-section category-section';
-    const categoryTitle = document.createElement('h3');
-    categoryTitle.className = 'section-label';
-    categoryTitle.textContent = '所属类别';
-    const categoryField = document.createElement('div');
-    categoryField.className = 'form-field';
-    const categorySelect = document.createElement('select');
-    const categorySelectId = `category-${product.id}`;
-    categorySelect.id = categorySelectId;
-    const placeholderOption = document.createElement('option');
-    placeholderOption.value = '';
-    placeholderOption.textContent = data.categories.length ? '请选择分类' : '请先创建分类';
-    categorySelect.appendChild(placeholderOption);
-    const currentCategory = product.categories?.[0] || '';
-    data.categories.forEach((category) => {
-      const option = document.createElement('option');
-      option.value = category;
-      option.textContent = category;
-      categorySelect.appendChild(option);
-    });
-    categorySelect.value = currentCategory;
-    categorySelect.disabled = !data.categories.length;
-    categorySelect.addEventListener('change', () => {
-      const value = categorySelect.value;
-      product.categories = value ? [value] : [];
-      renderProducts();
-    });
-    const categoryLabel = document.createElement('label');
-    categoryLabel.setAttribute('for', categorySelectId);
-    categoryLabel.textContent = '选择分类';
-    categoryField.append(categoryLabel, categorySelect);
-    categorySection.append(categoryTitle, categoryField);
-
-    const paramsContainer = document.createElement('div');
-    paramsContainer.className = 'param-section';
-    createParamFields(product, paramsContainer);
-
-    const grouped = document.createElement('div');
-    grouped.className = 'product-editor-columns';
-    grouped.append(categorySection, paramsContainer);
+    const specsSection = document.createElement('div');
+    createParamFields(product, specsSection);
 
     const imagesContainer = document.createElement('div');
     imagesContainer.className = 'media-section';
@@ -719,7 +719,7 @@ function initAdminApp() {
     });
     actions.append(deleteBtn);
 
-    form.append(head, grouped, imagesContainer, actions);
+    form.append(head, specsSection, imagesContainer, actions);
 
     productEditor.dataset.state = 'open';
     productEditor.appendChild(form);
