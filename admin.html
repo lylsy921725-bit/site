@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page="admin">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Erawood Fabrication · 数据控制台</title>
+    <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body class="admin-body">
+    <div class="admin-shell" id="adminApp">
+      <header class="admin-header">
+        <div class="admin-brand">
+          <img src="assets/logo.svg" alt="Erawood Fabrication" />
+          <div class="admin-branding">
+            <span class="admin-brand-zh">木纪元智造</span>
+            <span class="admin-brand-en">ErawoodFabrication</span>
+          </div>
+        </div>
+        <nav class="admin-nav" aria-label="管理模块">
+          <button data-section="categories">
+            <strong>分类</strong>
+            <span>搭建产品体系</span>
+          </button>
+          <button data-section="paramTypes">
+            <strong>参数</strong>
+            <span>维护规格维度</span>
+          </button>
+          <button data-section="products">
+            <strong>产品</strong>
+            <span>内容与图集</span>
+          </button>
+          <button data-section="site">
+            <strong>站点</strong>
+            <span>品牌与外观</span>
+          </button>
+          <button data-section="data">
+            <strong>数据</strong>
+            <span>导入 / 导出</span>
+          </button>
+        </nav>
+      </header>
+      <main class="admin-main" tabindex="-1">
+        <section id="admin-categories" class="admin-section" data-section="categories" aria-labelledby="adminCategoriesTitle">
+          <div class="section-card">
+            <div class="section-head">
+              <div>
+                <h1 id="adminCategoriesTitle">分类管理</h1>
+                <p class="section-subtitle">为产品选择清晰的归类，让前台筛选更轻松。</p>
+              </div>
+              <div class="section-actions">
+                <button id="addCategory" class="button accent">新增分类</button>
+                <button id="saveCategories" class="button ghost">保存分类</button>
+              </div>
+            </div>
+            <ol id="categoryList" class="sortable-list"></ol>
+          </div>
+        </section>
+        <section id="admin-paramTypes" class="admin-section" data-section="paramTypes" hidden aria-labelledby="adminParamsTitle">
+          <div class="section-card">
+            <div class="section-head">
+              <div>
+                <h1 id="adminParamsTitle">参数类型</h1>
+                <p class="section-subtitle">设置产品展示需要的指标名称、单位与顺序。</p>
+              </div>
+              <div class="section-actions">
+                <button id="addParamType" class="button accent">新增参数</button>
+                <button id="saveParamTypes" class="button ghost">保存参数</button>
+              </div>
+            </div>
+            <div class="card-table">
+              <table class="admin-table" aria-describedby="adminParamsTitle">
+                <thead>
+                  <tr>
+                    <th scope="col">键名</th>
+                    <th scope="col">显示名</th>
+                    <th scope="col">单位</th>
+                    <th scope="col">显示</th>
+                    <th scope="col">排序</th>
+                    <th scope="col">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="paramTypeBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        <section id="admin-products" class="admin-section" data-section="products" hidden aria-labelledby="adminProductsTitle">
+          <div class="section-card">
+            <div class="section-head">
+              <div>
+                <h1 id="adminProductsTitle">产品矩阵</h1>
+                <p class="section-subtitle">从名称到图片一次完成，产品内容即刻上线。</p>
+              </div>
+              <div class="section-actions">
+                <button id="addProduct" class="button accent">新增产品</button>
+                <button id="saveProducts" class="button ghost">保存产品</button>
+              </div>
+            </div>
+            <div class="products-admin-layout">
+              <aside class="product-index" aria-label="产品列表">
+                <header>
+                  <h2>产品列表</h2>
+                  <p>拖动排序即可调整前台展示顺序。</p>
+                </header>
+                <ul id="productList" class="sortable-list"></ul>
+              </aside>
+              <div class="product-editor" id="productEditor" aria-live="polite">
+                <div class="editor-placeholder">
+                  <h2>选择或新建产品</h2>
+                  <p>左侧选择一项后，这里将展示完整的编辑表单。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section id="admin-site" class="admin-section" data-section="site" hidden aria-labelledby="adminSiteTitle">
+          <div class="section-card">
+            <div class="section-head">
+              <div>
+                <h1 id="adminSiteTitle">站点外观</h1>
+                <p class="section-subtitle">同步品牌文案、主题色与 Hero 媒体。</p>
+              </div>
+              <div class="section-actions">
+                <button id="saveSite" class="button accent">保存站点设置</button>
+              </div>
+            </div>
+            <form id="siteForm" class="form-grid">
+              <div class="form-field">
+                <label for="brandZh">中文品牌名</label>
+                <input id="brandZh" name="brandZh" required />
+              </div>
+              <div class="form-field">
+                <label for="brandEn">英文品牌名</label>
+                <input id="brandEn" name="brandEn" />
+              </div>
+              <div class="form-field">
+                <label for="accentColor">主题强调色</label>
+                <input id="accentColor" name="accent" type="color" value="#1BB9A5" />
+              </div>
+              <div class="form-field">
+                <label for="navLabels">导航文案（逗号分隔）</label>
+                <input id="navLabels" name="nav" placeholder="首页, 产品探索, 关于, 联系我们" />
+                <p class="field-note">按照导航顺序填写，最多支持四项。</p>
+              </div>
+              <fieldset class="form-field form-field--full">
+                <legend>Hero 背景</legend>
+                <label for="heroImage">桌面图片路径</label>
+                <input id="heroImage" name="heroImage" placeholder="assets/hero/hero.svg" />
+                <label for="heroMobileImage">移动图片路径</label>
+                <input id="heroMobileImage" name="heroMobileImage" placeholder="assets/hero/hero-m.svg" />
+                <label for="heroOverlay">遮罩不透明度</label>
+                <input id="heroOverlay" type="range" min="0" max="0.9" step="0.05" value="0.35" />
+                <div class="slider-output"><span>0.35</span></div>
+                <div class="form-row">
+                  <div>
+                    <label for="heroFocalX">焦点 X (0-1)</label>
+                    <input id="heroFocalX" type="number" min="0" max="1" step="0.01" />
+                  </div>
+                  <div>
+                    <label for="heroFocalY">焦点 Y (0-1)</label>
+                    <input id="heroFocalY" type="number" min="0" max="1" step="0.01" />
+                  </div>
+                </div>
+                <label for="heroAltZh">Hero Alt（中文）</label>
+                <input id="heroAltZh" />
+                <label for="heroAltEn">Hero Alt（英文）</label>
+                <input id="heroAltEn" />
+              </fieldset>
+              <div class="form-field">
+                <label for="aboutZh">关于（中文）</label>
+                <textarea id="aboutZh" rows="3"></textarea>
+              </div>
+              <div class="form-field">
+                <label for="aboutEn">关于（英文）</label>
+                <textarea id="aboutEn" rows="3"></textarea>
+              </div>
+              <div class="form-field">
+                <label for="contactAddress">地址</label>
+                <input id="contactAddress" />
+              </div>
+              <div class="form-field">
+                <label for="contactPhone">电话</label>
+                <input id="contactPhone" />
+              </div>
+              <div class="form-field">
+                <label for="contactEmail">邮箱</label>
+                <input id="contactEmail" type="email" />
+              </div>
+              <div class="form-field">
+                <label for="contactYoutube">YouTube</label>
+                <input id="contactYoutube" type="url" />
+              </div>
+              <div class="form-field">
+                <label for="footerText">页脚文案</label>
+                <input id="footerText" />
+              </div>
+            </form>
+          </div>
+        </section>
+        <section id="admin-data" class="admin-section" data-section="data" hidden aria-labelledby="adminDataTitle">
+          <div class="section-card">
+            <div class="section-head">
+              <div>
+                <h1 id="adminDataTitle">数据导入 / 导出</h1>
+                <p class="section-subtitle">一键导入草稿或下载当前站点配置。</p>
+              </div>
+            </div>
+            <div class="data-panel">
+              <div class="data-card">
+                <h2>导入 site.json</h2>
+                <p class="field-note">选择本地 JSON 文件，将覆盖当前草稿。</p>
+                <input type="file" id="importFile" accept="application/json" />
+              </div>
+              <div class="data-card">
+                <h2>导出当前数据</h2>
+                <p class="field-note">生成最新站点配置并下载到本地。</p>
+                <div class="data-actions">
+                  <button id="exportData" class="button accent">导出 JSON</button>
+                  <button id="clearDraft" class="button ghost">清除草稿</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="js/store.js"></script>
+    <script type="module" src="js/admin.js"></script>
+  </body>
+</html>

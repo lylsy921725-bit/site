@@ -1,1 +1,52 @@
-readme
+# Erawood Fabrication Static Site
+
+This repository contains a fully static, bilingual landing page and admin console for Erawood Fabrication. All assets are lightweight SVGs so the project can be hosted directly from object storage without a build step.
+
+## Quick start
+1. Clone or download this repository and open a terminal in the project root.
+2. Run the bundled helper to expose the site on a predictable port (especially useful for “right-pane” previews):
+   ```bash
+   python preview.py --port 4173
+   ```
+   > ℹ️ The script automatically serves the `/index.html` and `/admin.html` entry points from the correct directory, so you do n
+ot have to guess the right URL.
+3. Visit `http://localhost:4173/index.html` to browse the public site.
+4. (Optional) Open `http://localhost:4173/admin.html` for a dedicated admin-only view.
+5. Press <kbd>F12</kbd> anywhere to reveal the admin login modal (password: `123`).
+
+If you prefer a different setup, any static server still works:
+
+```bash
+python -m http.server 8080
+```
+
+> ℹ️ Port 8000 is avoided because some environments reserve it; feel free to substitute any other open port.
+
+### Alternative preview options
+- **VS Code Live Server**: Right-click `index.html` and choose **Open with Live Server**. Update the port in the resulting URL if 8000 is unavailable.
+- **Node.js static server**: Run `npx serve . --listen 5173` and open `http://localhost:5173/`.
+- **Object storage preview**: Upload the entire folder structure to your bucket and enable static website hosting; visit the exposed URL to confirm the production experience.
+
+## Data model
+- `data/site.json` is the single source of truth for site copy, product definitions, categories, and parameter types.
+- Runtime updates are cached in `localStorage` until exported or reset.
+
+## Project layout
+```
+index.html        # Public landing page entry point
+admin.html        # Admin surface rendered after login
+css/styles.css    # Global styles and component tokens
+js/router.js      # Hash-based navigation helpers
+js/store.js       # Data layer, persistence, and language state
+js/gallery.js     # Product grid, filtering, and lightbox logic
+js/admin.js       # Admin console modules (CRUD, import/export)
+data/site.json    # Seed content and configuration
+assets/           # SVG imagery used across the site
+robots.txt        # SEO directives
+sitemap.xml       # Static sitemap for search engines
+```
+
+## Development notes
+- No external dependencies or build tooling are required.
+- Keep the combined JavaScript payload below 200 KB to satisfy the performance budget.
+- All file paths must remain relative so the site deploys cleanly to static hosting.
