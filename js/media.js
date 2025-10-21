@@ -44,6 +44,31 @@ async function parseJsonListing(response) {
   }
 }
 
+async function parseXmlListing(response, baseUrl, normalized) {
+  try {
+    const text = await response.clone().text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'application/xml');
+    const keys = Array.from(doc.getElementsByTagName('Key'));
+    if (!keys.length) return [];
+    return keys
+      .map((node) => (node.textContent || '').trim())
+      .filter((value) => value && isImage(value))
+      .map((value) => {
+        let candidate = value;
+        if (!candidate.startsWith(normalized) && !candidate.startsWith('/')) {
+          candidate = `${normalized}${candidate}`;
+        }
+        if (!candidate.startsWith('http')) {
+          candidate = candidate.replace(/\/+/g, '/');
+        }
+        return toRelativePath(candidate, baseUrl);
+      });
+  } catch (error) {
+    return [];
+  }
+}
+
 async function parseHtmlListing(response, baseUrl) {
   const text = await response.text();
   const parser = new DOMParser();
@@ -71,6 +96,12 @@ export async function listFolderImages(folderPath, { revalidate = false } = {}) 
   let images = [];
   if (contentType.includes('application/json')) {
     images = await parseJsonListing(response);
+    if (!images.length) {
+      const fallback = await parseHtmlListing(response, baseUrl);
+      images = fallback;
+    }
+  } else if (contentType.includes('xml')) {
+    images = await parseXmlListing(response, baseUrl, normalized);
     if (!images.length) {
       const fallback = await parseHtmlListing(response, baseUrl);
       images = fallback;

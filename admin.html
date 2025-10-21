@@ -13,11 +13,16 @@
   <body class="admin-body">
     <div class="admin-shell" id="adminApp">
       <header class="admin-header">
-        <div class="admin-brand">
-          <img src="assets/logo.svg" alt="Erawood Fabrication" />
-          <div class="admin-branding">
-            <span class="admin-brand-zh">木纪元智造</span>
-            <span class="admin-brand-en">ErawoodFabrication</span>
+        <div class="admin-header-row">
+          <div class="admin-brand">
+            <img src="assets/logo.svg" alt="Erawood Fabrication" />
+            <div class="admin-branding">
+              <span class="admin-brand-zh">木纪元智造</span>
+              <span class="admin-brand-en">ErawoodFabrication</span>
+            </div>
+          </div>
+          <div class="admin-header-actions">
+            <button id="logoutAdmin" class="button ghost" type="button">退出</button>
           </div>
         </div>
         <nav class="admin-nav" aria-label="管理模块">
@@ -219,7 +224,10 @@
               <div class="data-card">
                 <h2>导入 site.json</h2>
                 <p class="field-note">选择本地 JSON 文件，将覆盖当前草稿。</p>
-                <input type="file" id="importFile" accept="application/json" />
+                <div class="data-actions">
+                  <input type="file" id="importFile" accept="application/json" class="sr-only" aria-hidden="true" tabindex="-1" />
+                  <button id="importTrigger" class="button accent" type="button">导入 JSON</button>
+                </div>
               </div>
               <div class="data-card">
                 <h2>导出当前数据</h2>

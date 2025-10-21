@@ -144,11 +144,13 @@ function initAdminApp() {
   const siteForm = document.getElementById('siteForm');
   const saveSiteBtn = document.getElementById('saveSite');
   const importFile = document.getElementById('importFile');
+  const importTrigger = document.getElementById('importTrigger');
   const exportBtn = document.getElementById('exportData');
   const clearDraftBtn = document.getElementById('clearDraft');
   const overlaySlider = document.getElementById('heroOverlay');
   const overlayOutput = document.querySelector('.slider-output span');
   const saveStatus = document.getElementById('saveStatus');
+  const logoutBtn = document.getElementById('logoutAdmin');
 
   const siteFields = {
     brandZh: document.getElementById('brandZh'),
@@ -912,6 +914,11 @@ function initAdminApp() {
     announceSave(ok ? '站点设置已保存' : '站点设置保存失败', ok ? 'success' : 'error');
   });
 
+  logoutBtn?.addEventListener('click', () => {
+    sessionStorage.removeItem(AUTH_KEY);
+    window.location.href = 'index.html';
+  });
+
   exportBtn.addEventListener('click', () => {
     const blob = new Blob([JSON.stringify(Store.exportData(), null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -928,6 +935,10 @@ function initAdminApp() {
     Store.clearDraft();
     sessionStorage.removeItem(AUTH_KEY);
     window.location.reload();
+  });
+
+  importTrigger?.addEventListener('click', () => {
+    importFile?.click();
   });
 
   importFile.addEventListener('change', async () => {
