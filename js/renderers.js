@@ -74,6 +74,20 @@ const heroState = {
   alt: ''
 };
 
+const __guard = Object.create(null);
+function bump(name) {
+  __guard[name] = (__guard[name] || 0) + 1;
+  if (__guard[name] > 50) {
+    throw new Error(`${name} loop`);
+  }
+}
+
+let renderingNav = false;
+let renderingHero = false;
+let renderingProductsLock = false;
+let renderingAbout = false;
+let renderingContact = false;
+
 function ensureRefs() {
   if (!refs.app) {
     refs.app = document.getElementById('app');
@@ -429,47 +443,87 @@ function setupListeners() {
 }
 
 export function renderNav(site = {}) {
-  ensureRefs();
-  setupListeners();
-  const lang = Store.getLanguage ? Store.getLanguage() : 'zh';
-  if (refs.brandZh) {
-    refs.brandZh.textContent = site.brandZh || defaults.brandZh;
-  }
-  if (refs.brandEn) {
-    refs.brandEn.textContent = site.brandEn || defaults.brandEn;
-  }
-  updateBranding(site, lang);
-  updateNavLabels(site);
-  applyTheme(site);
-  if (refs.footerText) {
-    refs.footerText.textContent = site.footer || defaults.footer;
+  if (renderingNav) return;
+  renderingNav = true;
+  bump('renderNav');
+  try {
+    ensureRefs();
+    setupListeners();
+    const lang = Store.getLanguage ? Store.getLanguage() : 'zh';
+    if (refs.brandZh) {
+      refs.brandZh.textContent = site.brandZh || defaults.brandZh;
+    }
+    if (refs.brandEn) {
+      refs.brandEn.textContent = site.brandEn || defaults.brandEn;
+    }
+    updateBranding(site, lang);
+    updateNavLabels(site);
+    applyTheme(site);
+    if (refs.footerText) {
+      refs.footerText.textContent = site.footer || defaults.footer;
+    }
+  } finally {
+    renderingNav = false;
+    __guard.renderNav = 0;
   }
 }
 
 export function renderHero(site = {}) {
-  setupListeners();
-  renderHeroCopy(site);
+  if (renderingHero) return;
+  renderingHero = true;
+  bump('renderHero');
+  try {
+    setupListeners();
+    renderHeroCopy(site);
+  } finally {
+    renderingHero = false;
+    __guard.renderHero = 0;
+  }
 }
 
 export function renderProducts() {
-  setupListeners();
-  if (!galleryMounted) {
-    initGallery.mount();
-    galleryMounted = true;
-  } else {
-    initGallery.renderFilters();
-    initGallery.renderProducts(true);
+  if (renderingProductsLock) return;
+  renderingProductsLock = true;
+  bump('renderProducts');
+  try {
+    setupListeners();
+    if (!galleryMounted) {
+      initGallery.mount();
+      galleryMounted = true;
+    } else {
+      initGallery.renderFilters();
+      initGallery.renderProducts(true);
+    }
+    handleFilterChange();
+  } finally {
+    renderingProductsLock = false;
+    __guard.renderProducts = 0;
   }
-  handleFilterChange();
 }
 
 export function renderAbout(site = {}) {
-  setupListeners();
-  updateAbout(site);
+  if (renderingAbout) return;
+  renderingAbout = true;
+  bump('renderAbout');
+  try {
+    setupListeners();
+    updateAbout(site);
+  } finally {
+    renderingAbout = false;
+    __guard.renderAbout = 0;
+  }
 }
 
 export function renderContact(site = {}) {
-  setupListeners();
-  updateContact(site);
+  if (renderingContact) return;
+  renderingContact = true;
+  bump('renderContact');
+  try {
+    setupListeners();
+    updateContact(site);
+  } finally {
+    renderingContact = false;
+    __guard.renderContact = 0;
+  }
 }
 

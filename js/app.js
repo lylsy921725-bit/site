@@ -1,5 +1,6 @@
 import { renderNav, renderHero, renderProducts, renderAbout, renderContact } from './renderers.js';
 import { loadSiteJSON } from './store.js';
+import './admin.js';
 
 window.addEventListener('DOMContentLoaded', init);
 
