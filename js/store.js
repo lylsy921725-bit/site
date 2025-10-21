@@ -239,5 +239,27 @@ const Store = {
   }
 };
 
+async function applyFallbackState() {
+  const fallback = { site: {}, paramTypes: [], categories: [], products: [] };
+  try {
+    Store.setState(fallback, { persist: false });
+  } catch (stateError) {
+    console.error('Fallback state apply failed', stateError);
+  }
+  return fallback;
+}
+
+export async function loadSiteJSON() {
+  try {
+    return await Store.load();
+  } catch (error) {
+    const fallback = await applyFallbackState();
+    if (error && typeof error === 'object' && !error.fallback) {
+      Object.assign(error, { fallback });
+    }
+    throw error;
+  }
+}
+
 window.Store = Store;
 export { Store };

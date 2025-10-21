@@ -129,8 +129,9 @@ function resolveImageSource(path) {
   }
 }
 
-function openLightbox(images = [], startIndex = 0, options = {}) {
-  if (!Array.isArray(images) || !images.length) return;
+function openLightbox(arg = [], startIndex = 0, options = {}) {
+  const images = Array.isArray(arg) ? arg.filter(Boolean) : [arg].filter(Boolean);
+  if (!images.length) return;
   const { title = '' } = options || {};
   currentImages = images;
   const safeIndex = Number.isFinite(startIndex) ? startIndex : 0;
