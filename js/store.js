@@ -228,6 +228,9 @@ const Store = {
   exportData() {
     return clone(state);
   },
+  getSite() {
+    return clone(state);
+  },
   applyImport(data) {
     state = mergeState(data, null);
     const success = commitState();

@@ -1210,6 +1210,56 @@ img {
   resize: vertical;
 }
 
+.publish-settings {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 18px;
+  background: rgba(17, 24, 33, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.publish-settings legend {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.publish-settings .publish-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
+.publish-settings .publish-option input[type='radio'] {
+  accent-color: var(--accent);
+}
+
+.publish-settings .publish-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.publish-settings #publishPutUrl {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.publish-settings #publishPutUrl:focus {
+  border-color: rgba(27, 185, 165, 0.6);
+  background: rgba(27, 185, 165, 0.08);
+}
+
 .form-field--full {
   grid-column: 1 / -1;
 }

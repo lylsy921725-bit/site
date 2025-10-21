@@ -1,8 +1,263 @@
-import { Store } from './store.js';
 import { listFolderImages, normalizeFolderPath, normalizeAssetPath } from './media.js';
 
 function normalizeRelativePath(value = '') {
   return normalizeAssetPath(value);
+}
+
+const PUBLISH_KEY = 'publisher.mode';
+const PUT_URL_KEY = 'publisher.putUrl';
+const DIR_IDB_KEY = 'publisher.dirHandle';
+
+function isFileSystemSupported() {
+  return typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+}
+
+function getPublishMode() {
+  return localStorage.getItem(PUBLISH_KEY) || 'local';
+}
+
+function setPublishMode(mode) {
+  if (!mode) return;
+  localStorage.setItem(PUBLISH_KEY, mode);
+}
+
+function getPutUrl() {
+  return localStorage.getItem(PUT_URL_KEY) || '';
+}
+
+function setPutUrl(value) {
+  const next = (value || '').trim();
+  localStorage.setItem(PUT_URL_KEY, next);
+}
+
+function openPublisherDB() {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') {
+      reject(new Error('indexedDB 不可用'));
+      return;
+    }
+    const request = indexedDB.open('publisher-db', 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('kv')) {
+        db.createObjectStore('kv');
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function txPut(db, key, value) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('kv', 'readwrite');
+    tx.objectStore('kv').put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function txGet(db, key) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('kv', 'readonly');
+    const request = tx.objectStore('kv').get(key);
+    request.onsuccess = () => resolve(request.result);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function txDelete(db, key) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('kv', 'readwrite');
+    tx.objectStore('kv').delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function saveDirHandle(handle) {
+  try {
+    const db = await openPublisherDB();
+    if (handle) {
+      await txPut(db, DIR_IDB_KEY, handle);
+    } else {
+      await txDelete(db, DIR_IDB_KEY);
+    }
+  } catch (error) {
+    console.warn('无法保存目录句柄', error);
+  }
+}
+
+async function loadDirHandle() {
+  try {
+    const db = await openPublisherDB();
+    return await txGet(db, DIR_IDB_KEY);
+  } catch (error) {
+    console.warn('无法读取目录句柄', error);
+    return null;
+  }
+}
+
+async function clearDirHandle() {
+  try {
+    const db = await openPublisherDB();
+    await txDelete(db, DIR_IDB_KEY);
+  } catch (error) {
+    console.warn('无法清除目录句柄', error);
+  }
+}
+
+async function verifyWritable(handle, { request = true } = {}) {
+  if (!handle) return false;
+  try {
+    if (typeof handle.queryPermission === 'function') {
+      const status = await handle.queryPermission({ mode: 'readwrite' });
+      if (status === 'granted') return true;
+      if (status === 'denied' && !request) {
+        return false;
+      }
+    }
+    if (request && typeof handle.requestPermission === 'function') {
+      const perm = await handle.requestPermission({ mode: 'readwrite' });
+      return perm === 'granted';
+    }
+  } catch (error) {
+    console.warn('目录权限校验失败', error);
+  }
+  return false;
+}
+
+async function getOrAskProjectDir() {
+  if (!isFileSystemSupported()) {
+    throw new Error('当前环境不支持本地目录写入');
+  }
+  let handle = await loadDirHandle();
+  if (handle && (await verifyWritable(handle, { request: false }))) {
+    return handle;
+  }
+  handle = await window.showDirectoryPicker();
+  if (!handle) {
+    throw new Error('未选择目录');
+  }
+  const ok = await verifyWritable(handle);
+  if (!ok) {
+    await clearDirHandle();
+    throw new Error('未获得写权限');
+  }
+  await saveDirHandle(handle);
+  return handle;
+}
+
+async function writeFile(directory, filename, contents) {
+  const fileHandle = await directory.getFileHandle(filename, { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(contents);
+  await writable.close();
+}
+
+function formatTimestamp() {
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, '0');
+  const date = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  const time = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  return `${date}-${time}`;
+}
+
+function triggerJsonDownload(payload, filename = 'site.json') {
+  const content = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
+  const blob = new Blob([content], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
+
+function collectSiteSnapshot() {
+  const store = window.Store;
+  if (!store) return {};
+  if (typeof store.exportData === 'function') {
+    return store.exportData();
+  }
+  if (typeof store.getSite === 'function') {
+    return store.getSite();
+  }
+  if (typeof store.getState === 'function') {
+    return store.getState();
+  }
+  return {};
+}
+
+async function publishToLocal(json, { versioned = true } = {}) {
+  const stamp = versioned ? formatTimestamp() : '';
+  if (!isFileSystemSupported()) {
+    triggerJsonDownload(json, versioned ? `site-${stamp}.json` : 'site.json');
+    return {
+      ok: false,
+      method: 'download',
+      message: '浏览器不支持目录写入，已下载最新 JSON'
+    };
+  }
+  try {
+    const root = await getOrAskProjectDir();
+    const dataDir = await root.getDirectoryHandle('data', { create: true });
+    await writeFile(dataDir, 'site.json', json);
+    let versionFile = null;
+    if (versioned) {
+      versionFile = `site-${stamp}.json`;
+      await writeFile(dataDir, versionFile, json);
+    }
+    return {
+      ok: true,
+      method: 'local',
+      message: versionFile
+        ? `已写入 data/site.json 并生成 ${versionFile}`
+        : '已写入 data/site.json',
+      versionFile
+    };
+  } catch (error) {
+    console.warn('写入本地目录失败，退回下载', error);
+    triggerJsonDownload(json, versioned ? `site-${stamp || formatTimestamp()}.json` : 'site.json');
+    return {
+      ok: false,
+      method: 'download',
+      message: '目录写入失败，已下载最新 JSON',
+      error
+    };
+  }
+}
+
+async function publishToPut(json) {
+  const url = getPutUrl();
+  if (!/^https?:\/\//i.test(url)) {
+    throw new Error('无效的 PUT URL');
+  }
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: json
+  });
+  if (!response.ok) {
+    throw new Error(`PUT 失败 HTTP ${response.status}`);
+  }
+  return {
+    ok: true,
+    method: 'put',
+    message: '已上传到预签名 URL'
+  };
+}
+
+export async function autoPublishSiteJSON({ versioned = true } = {}) {
+  const snapshot = collectSiteSnapshot();
+  const json = JSON.stringify(snapshot, null, 2);
+  const mode = getPublishMode();
+  if (mode === 'put') {
+    return publishToPut(json);
+  }
+  return publishToLocal(json, { versioned });
 }
 
 let screenQuery;
@@ -56,6 +311,7 @@ function initResponsive() {
 
 initResponsive();
 
+const Store = window.Store;
 const AUTH_KEY = 'erawood_admin_auth';
 const PASSWORD = '123';
 
@@ -133,6 +389,10 @@ function slugify(value = '') {
 }
 
 function initAdminApp() {
+  if (!Store) {
+    console.error('Store 未初始化');
+    return;
+  }
   const adminNav = document.querySelectorAll('.admin-nav button');
   const sections = document.querySelectorAll('.admin-section');
   const categoryList = document.getElementById('categoryList');
@@ -189,108 +449,6 @@ function initAdminApp() {
   const clone = (obj) => JSON.parse(JSON.stringify(obj));
   let statusTimer = null;
 
-  const triggerJsonDownload = (payload, filename = 'site.json') => {
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
-  };
-
-  const hasFileSystemAccess = () => typeof window !== 'undefined' && 'showDirectoryPicker' in window;
-
-  let fsRootHandle = null;
-  let fsDataHandle = null;
-
-  const resetFileHandles = () => {
-    fsRootHandle = null;
-    fsDataHandle = null;
-  };
-
-  const requestRootDirectory = async () => {
-    if (!hasFileSystemAccess()) return null;
-    try {
-      fsRootHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-      fsDataHandle = null;
-      return fsRootHandle;
-    } catch (error) {
-      console.warn('目录选择被取消或失败', error);
-      resetFileHandles();
-      return null;
-    }
-  };
-
-  const resolveDataDirectory = async () => {
-    if (!hasFileSystemAccess()) return null;
-    if (!fsRootHandle) {
-      const root = await requestRootDirectory();
-      if (!root) return null;
-    }
-    if (!fsRootHandle) return null;
-    if (!fsDataHandle) {
-      try {
-        fsDataHandle = await fsRootHandle.getDirectoryHandle('data', { create: true });
-      } catch (error) {
-        console.warn('无法访问 data 目录，将使用所选目录', error);
-        fsDataHandle = fsRootHandle;
-      }
-    }
-    return fsDataHandle;
-  };
-
-  const writeJsonFile = async (directoryHandle, filename, contents) => {
-    const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
-    const writable = await fileHandle.createWritable();
-    await writable.write(contents);
-    await writable.close();
-  };
-
-  const formatTimestamp = () => {
-    const now = new Date();
-    const pad = (value) => String(value).padStart(2, '0');
-    const date = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
-    const time = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-    return `${date}-${time}`;
-  };
-
-  const persistSnapshot = async (payload, { versioned = true } = {}) => {
-    const json = JSON.stringify(payload, null, 2);
-    const versionName = versioned ? `site-${formatTimestamp()}.json` : 'site.json';
-    if (hasFileSystemAccess()) {
-      try {
-        const directory = await resolveDataDirectory();
-        if (directory) {
-          const usingDataFolder = fsDataHandle && fsDataHandle !== fsRootHandle;
-          const prefix = usingDataFolder ? 'data/' : '';
-          await writeJsonFile(directory, 'site.json', json);
-          if (versioned) {
-            await writeJsonFile(directory, versionName, json);
-          }
-          return {
-            ok: true,
-            method: 'filesystem',
-            baseFile: `${prefix}site.json`,
-            versionFile: versioned ? `${prefix}${versionName}` : `${prefix}site.json`
-          };
-        }
-      } catch (error) {
-        console.warn('写入 data 目录失败', error);
-        resetFileHandles();
-      }
-    }
-    triggerJsonDownload(payload, versionName);
-    return {
-      ok: false,
-      method: 'download',
-      baseFile: null,
-      versionFile: versionName
-    };
-  };
-
   const announceSave = (message, variant = 'success') => {
     if (!saveStatus) return;
     if (statusTimer) {
@@ -303,6 +461,148 @@ function initAdminApp() {
       saveStatus.dataset.state = 'hidden';
     }, 2600);
   };
+
+  function doLogout() {
+    sessionStorage.removeItem(AUTH_KEY);
+    window.setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 360);
+  }
+
+  function announcePublishResult(result) {
+    if (!result || !result.message) return;
+    announceSave(result.message, result.ok ? 'success' : 'warning');
+  }
+
+  function bindPublishSettingsUI() {
+    const wrap = document.getElementById('settings-publish');
+    if (!wrap || wrap.dataset.bound === '1') return;
+    wrap.dataset.bound = '1';
+    wrap.innerHTML = `
+      <legend>发布方式</legend>
+      <p class="field-note">退出后台或导出时自动同步最新 site.json。</p>
+      <label class="publish-option">
+        <input type="radio" name="publish-mode" value="local" /> 写入本地项目文件夹（推荐）
+      </label>
+      <div class="form-row publish-row">
+        <button type="button" class="button ghost" id="pickPublishFolder">选择项目根目录</button>
+        <span id="publishFolderHint" class="field-note"></span>
+      </div>
+      <label class="publish-option">
+        <input type="radio" name="publish-mode" value="put" /> 预签名 PUT URL
+      </label>
+      <input id="publishPutUrl" type="url" placeholder="https://... (OSS/S3 预签名链接)" />
+    `;
+
+    const folderHint = wrap.querySelector('#publishFolderHint');
+    const pickBtn = wrap.querySelector('#pickPublishFolder');
+    const putInput = wrap.querySelector('#publishPutUrl');
+    const radios = wrap.querySelectorAll('input[name="publish-mode"]');
+
+    const currentMode = getPublishMode();
+    const setPutHint = () => {
+      if (folderHint) {
+        folderHint.textContent = '退出或导出时将上传到预签名 URL。';
+      }
+    };
+
+    radios.forEach((radio) => {
+      radio.checked = radio.value === currentMode;
+      radio.addEventListener('change', (event) => {
+        const value = event.target.value;
+        setPublishMode(value);
+        if (value === 'put') {
+          setPutHint();
+        } else {
+          refreshHint({ requestPermission: false });
+        }
+      });
+    });
+
+    putInput.value = getPutUrl();
+    putInput.addEventListener('change', (event) => {
+      setPutUrl(event.target.value);
+    });
+
+    const refreshHint = async ({ requestPermission = false } = {}) => {
+      if (!folderHint) return;
+      if (!isFileSystemSupported()) {
+        folderHint.textContent = '当前浏览器不支持目录写入，将改为下载 JSON。';
+        if (pickBtn) {
+          pickBtn.disabled = true;
+        }
+        return;
+      }
+      if (pickBtn) {
+        pickBtn.disabled = false;
+      }
+      const handle = await loadDirHandle();
+      if (!handle) {
+        folderHint.textContent = '尚未选择项目根目录。';
+        return;
+      }
+      const granted = await verifyWritable(handle, { request: requestPermission });
+      if (granted) {
+        folderHint.textContent = '已授权，可自动写入 data/site.json。';
+      } else if (requestPermission) {
+        folderHint.textContent = '目录缺少写权限，请重新授权。';
+        await clearDirHandle();
+      } else {
+        folderHint.textContent = '目录待授权，退出时将提示重新授权。';
+      }
+    };
+
+    pickBtn?.addEventListener('click', async () => {
+      if (!isFileSystemSupported()) {
+        window.alert?.('当前浏览器不支持目录写入，请使用下载或切换到支持的浏览器。');
+        return;
+      }
+      try {
+        const dir = await window.showDirectoryPicker();
+        if (!dir) return;
+        await saveDirHandle(dir);
+        const ok = await verifyWritable(dir, { request: true });
+        folderHint.textContent = ok ? '已授权，可自动写入 data/site.json。' : '目录缺少写权限，请重新授权。';
+        if (ok) {
+          setPublishMode('local');
+          radios.forEach((radio) => {
+            radio.checked = radio.value === 'local';
+          });
+        } else {
+          await clearDirHandle();
+        }
+      } catch (error) {
+        console.warn('选择目录被取消或失败', error);
+      }
+    });
+
+    if (currentMode === 'put') {
+      setPutHint();
+    } else {
+      refreshHint({ requestPermission: false });
+    }
+  }
+
+  function patchLogoutAutoPublish() {
+    if (!logoutBtn) return;
+    logoutBtn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      try {
+        const result = await autoPublishSiteJSON({ versioned: true });
+        announcePublishResult(result);
+      } catch (error) {
+        console.error('publish failed', error);
+        const message = `发布失败：${error?.message || error}`;
+        announceSave(message, 'error');
+        window.alert?.(message);
+      } finally {
+        doLogout();
+      }
+    });
+  }
+
+  bindPublishSettingsUI();
+  patchLogoutAutoPublish();
 
   const renderEditorPlaceholder = () => {
     if (!productEditor) return;
@@ -1038,32 +1338,14 @@ function initAdminApp() {
     announceSave(ok ? '站点设置已保存' : '站点设置保存失败', ok ? 'success' : 'error');
   });
 
-  logoutBtn?.addEventListener('click', async () => {
-    const snapshot = Store.exportData();
-    const result = await persistSnapshot(snapshot, { versioned: true });
-    if (result.ok) {
-      const message = result.versionFile && result.versionFile !== result.baseFile
-        ? `已更新 ${result.baseFile} 并生成 ${result.versionFile}`
-        : `已更新 ${result.baseFile}`;
-      announceSave(message, 'success');
-    } else {
-      announceSave('已下载最新站点数据，请放入 data 文件夹', 'warning');
-    }
-    sessionStorage.removeItem(AUTH_KEY);
-    window.setTimeout(() => {
-      window.location.href = 'index.html';
-    }, 360);
-  });
-
   exportBtn.addEventListener('click', async () => {
-    const result = await persistSnapshot(Store.exportData(), { versioned: true });
-    if (result.ok) {
-      const message = result.versionFile && result.versionFile !== result.baseFile
-        ? `已导出到 ${result.baseFile}，并生成 ${result.versionFile}`
-        : `已导出到 ${result.baseFile}`;
-      announceSave(message, 'success');
-    } else {
-      announceSave('已下载最新 site.json，请放入 data 文件夹', 'warning');
+    try {
+      const result = await autoPublishSiteJSON({ versioned: true });
+      announcePublishResult(result);
+    } catch (error) {
+      console.error('导出失败', error);
+      const message = `导出失败：${error?.message || error}`;
+      announceSave(message, 'error');
     }
   });
 
