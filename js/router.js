@@ -6,6 +6,8 @@ let backToTop;
 let nav;
 let navToggle;
 let mobileOpen = false;
+let screenQuery;
+let pendingViewportUpdate = false;
 
 function handleNavClick(event) {
   const href = event.currentTarget.getAttribute('href');
@@ -25,6 +27,53 @@ function toggleNav(force) {
   navToggle.setAttribute('aria-expanded', expanded);
   nav.classList.toggle('open', expanded);
   document.body.classList.toggle('nav-open', expanded);
+}
+
+function assignScreenMode(mode) {
+  document.documentElement.dataset.screen = mode;
+  if (document.body) {
+    document.body.dataset.screen = mode;
+  } else {
+    window.addEventListener(
+      'DOMContentLoaded',
+      () => {
+        document.body.dataset.screen = mode;
+      },
+      { once: true }
+    );
+  }
+}
+
+function applyScreenMode(media) {
+  const matches = media?.matches ?? false;
+  const mode = matches ? 'mobile' : 'desktop';
+  assignScreenMode(mode);
+  if (mode === 'desktop' && mobileOpen) {
+    toggleNav(false);
+  }
+}
+
+function updateViewportUnit() {
+  if (pendingViewportUpdate) return;
+  pendingViewportUpdate = true;
+  requestAnimationFrame(() => {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+    pendingViewportUpdate = false;
+  });
+}
+
+function initResponsive() {
+  if (typeof window === 'undefined') return;
+  if (!screenQuery) {
+    screenQuery = window.matchMedia('(max-width: 960px)');
+    applyScreenMode(screenQuery);
+    screenQuery.addEventListener('change', applyScreenMode);
+    updateViewportUnit();
+    window.addEventListener('resize', updateViewportUnit);
+    window.addEventListener('orientationchange', updateViewportUnit);
+    document.documentElement.dataset.responsiveBound = '1';
+  }
 }
 
 function highlightSection(id) {
@@ -83,6 +132,7 @@ function initNav() {
 
 const initRouter = {
   start() {
+    initResponsive();
     initNav();
   },
   updateLabels() {
@@ -95,3 +145,7 @@ Store.on('datachange', () => {
 });
 
 export { initRouter };
+
+if (typeof window !== 'undefined') {
+  initResponsive();
+}

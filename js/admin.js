@@ -1,6 +1,57 @@
 import { Store } from './store.js';
 import { listFolderImages, normalizeFolderPath } from './media.js';
 
+let screenQuery;
+let pendingViewportUpdate = false;
+
+function assignScreenMode(mode) {
+  document.documentElement.dataset.screen = mode;
+  if (document.body) {
+    document.body.dataset.screen = mode;
+  } else {
+    window.addEventListener(
+      'DOMContentLoaded',
+      () => {
+        document.body.dataset.screen = mode;
+      },
+      { once: true }
+    );
+  }
+}
+
+function applyScreenMode(media) {
+  const matches = media?.matches ?? false;
+  assignScreenMode(matches ? 'mobile' : 'desktop');
+}
+
+function updateViewportUnit() {
+  if (pendingViewportUpdate) return;
+  pendingViewportUpdate = true;
+  requestAnimationFrame(() => {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+    pendingViewportUpdate = false;
+  });
+}
+
+function initResponsive() {
+  if (typeof window === 'undefined') return;
+  const query = window.matchMedia('(max-width: 960px)');
+  applyScreenMode(query);
+  if (document.documentElement.dataset.responsiveBound === '1') {
+    updateViewportUnit();
+    return;
+  }
+  screenQuery = query;
+  screenQuery.addEventListener('change', applyScreenMode);
+  updateViewportUnit();
+  window.addEventListener('resize', updateViewportUnit);
+  window.addEventListener('orientationchange', updateViewportUnit);
+  document.documentElement.dataset.responsiveBound = '1';
+}
+
+initResponsive();
+
 const AUTH_KEY = 'erawood_admin_auth';
 const PASSWORD = '123';
 
