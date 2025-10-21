@@ -123,8 +123,13 @@ function observeImage(img, card) {
 
 function resolveImageSource(path) {
   if (!path) return '';
+  if (/^https?:/i.test(path)) {
+    return path;
+  }
   try {
-    return new URL(path, window.location.href).href;
+    const current = window.location.href.split('#')[0].split('?')[0];
+    const base = current.endsWith('/') ? current : `${current.replace(/[^/]*$/, '')}`;
+    return new URL(path, base || window.location.origin).href;
   } catch (error) {
     return path;
   }
