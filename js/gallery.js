@@ -13,13 +13,26 @@ let currentIndex = 0;
 let observer;
 const folderImageCache = new Map();
 
+function extractImagePath(entry) {
+  if (!entry) return '';
+  if (typeof entry === 'string') return entry;
+  if (typeof entry === 'object') {
+    return entry.path || entry.url || entry.href || entry.src || '';
+  }
+  return '';
+}
+
 function dedupe(list) {
   return Array.from(new Set(list.filter(Boolean)));
 }
 
 async function resolveProductImages(product) {
+  const cover = normalizeAssetPath(product.cover);
   const manual = Array.isArray(product.images) ? product.images : [];
-  const baseList = dedupe([product.cover, ...manual].map((item) => normalizeAssetPath(item)));
+  const manualPaths = manual
+    .map((item) => normalizeAssetPath(extractImagePath(item)))
+    .filter(Boolean);
+  const baseList = dedupe([cover, ...manualPaths]);
   const normalized = normalizeFolderPath(product.imageFolder);
 
   if (!normalized) {
@@ -28,13 +41,15 @@ async function resolveProductImages(product) {
 
   if (folderImageCache.has(normalized)) {
     const cached = folderImageCache.get(normalized);
-    return dedupe([...cached, ...baseList]);
+    return dedupe([...baseList, ...cached]);
   }
 
   try {
     const images = await listFolderImages(normalized);
-    folderImageCache.set(normalized, images);
-    return dedupe([...images, ...baseList]);
+    const normalizedImages = images.map((img) => normalizeAssetPath(img)).filter(Boolean);
+    folderImageCache.set(normalized, normalizedImages);
+    const merged = dedupe([...baseList, ...normalizedImages]);
+    return merged.length ? merged : baseList;
   } catch (error) {
     if (baseList.length) {
       console.warn('图集读取失败，使用已有图片', error);
@@ -126,12 +141,13 @@ function resolveImageSource(path) {
   if (/^https?:/i.test(path)) {
     return path;
   }
+  const normalized = normalizeAssetPath(path) || path;
   try {
     const current = window.location.href.split('#')[0].split('?')[0];
     const base = current.endsWith('/') ? current : `${current.replace(/[^/]*$/, '')}`;
-    return new URL(path, base || window.location.origin).href;
+    return new URL(normalized, base || window.location.origin).href;
   } catch (error) {
-    return path;
+    return normalized;
   }
 }
 

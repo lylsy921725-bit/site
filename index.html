@@ -202,6 +202,96 @@
         }
       };
 
+      function getLocalizedValue(source, lang) {
+        const locale = typeof lang === 'string' ? lang : 'zh';
+        if (source == null) return '';
+        if (typeof source === 'string' || typeof source === 'number') {
+          return String(source);
+        }
+        if (typeof source === 'object') {
+          if (typeof source[locale] === 'string' && source[locale].trim()) {
+            return source[locale];
+          }
+          if (locale.startsWith('zh') && typeof source.zh === 'string' && source.zh.trim()) {
+            return source.zh;
+          }
+          if (locale.startsWith('en') && typeof source.en === 'string' && source.en.trim()) {
+            return source.en;
+          }
+          const values = Object.values(source).filter((value) => typeof value === 'string' && value.trim());
+          if (values.length) return values[0];
+        }
+        return '';
+      }
+
+      function updateTextBlocks(site, lang) {
+        if (!site) return;
+        const locale = typeof lang === 'string' ? lang : 'zh';
+        const contact = site.contact || {};
+        const social = contact.social || {};
+
+        if (aboutContent) {
+          aboutContent.textContent = getLocalizedValue(site.about, locale);
+        }
+
+        if (contactAddress) {
+          const addressText = getLocalizedValue(contact.address, locale);
+          contactAddress.textContent = addressText;
+          contactAddress.hidden = !addressText;
+        }
+
+        if (contactPhone) {
+          const phoneText = getLocalizedValue(contact.phone, locale);
+          if (phoneText) {
+            contactPhone.textContent = phoneText;
+            const sanitized = phoneText.replace(/\s+/g, '');
+            contactPhone.href = `tel:${sanitized}`;
+            contactPhone.hidden = false;
+          } else {
+            contactPhone.textContent = '';
+            contactPhone.removeAttribute('href');
+            contactPhone.hidden = true;
+          }
+        }
+
+        if (contactEmail) {
+          const emailText = getLocalizedValue(contact.email, locale);
+          if (emailText) {
+            contactEmail.textContent = emailText;
+            contactEmail.href = `mailto:${emailText}`;
+            contactEmail.hidden = false;
+          } else {
+            contactEmail.textContent = '';
+            contactEmail.removeAttribute('href');
+            contactEmail.hidden = true;
+          }
+        }
+
+        if (contactYoutube) {
+          const youtube = social.youtube;
+          let youtubeUrl = '';
+          let youtubeLabel = '';
+          if (typeof youtube === 'string') {
+            youtubeUrl = youtube;
+          } else if (youtube && typeof youtube === 'object') {
+            youtubeUrl = youtube.url || youtube.href || getLocalizedValue(youtube, locale);
+            youtubeLabel = getLocalizedValue(youtube.label || youtube.title || youtube.text, locale);
+            if (!youtubeLabel) {
+              const fallback = getLocalizedValue(youtube, locale);
+              youtubeLabel = fallback;
+            }
+          }
+          contactYoutube.textContent = youtubeLabel || (locale.startsWith('zh') ? 'YouTube' : 'YouTube');
+          if (youtubeUrl) {
+            contactYoutube.href = youtubeUrl;
+            contactYoutube.hidden = false;
+          } else {
+            contactYoutube.removeAttribute('href');
+            contactYoutube.hidden = true;
+          }
+        }
+      }
+
       function guessMime(path = '') {
         const ext = path.split('.').pop().toLowerCase();
         const mapping = {
@@ -270,6 +360,7 @@
           heroImage.alt = alt || heroImage.alt;
         }
         updateBranding(site, detail);
+        updateTextBlocks(site, detail);
         initRouter.updateLabels(detail);
         initGallery.renderProducts();
       });
@@ -304,14 +395,7 @@
         heroOverlay.style.setProperty('--hero-overlay', heroMedia.overlay ?? 0.35);
         appEl.style.setProperty('--accent', site.theme?.accent || '#1BB9A5');
         appEl.style.setProperty('--bg-base', site.theme?.bg || '#0B0F14');
-        aboutContent.textContent = Store.getLanguage() === 'zh' ? site.about.zh : site.about.en;
-        contactAddress.textContent = site.contact.address;
-        contactPhone.textContent = site.contact.phone;
-        contactPhone.href = `tel:${site.contact.phone.replace(/\s+/g, '')}`;
-        contactEmail.textContent = site.contact.email;
-        contactEmail.href = `mailto:${site.contact.email}`;
-        contactYoutube.textContent = 'YouTube';
-        contactYoutube.href = site.contact.social.youtube;
+        updateTextBlocks(site, Store.getLanguage());
         footerText.textContent = site.footer;
         navLinks.forEach((link, index) => {
           if (site.nav[index]) {
@@ -326,6 +410,7 @@
         applyLanguageStrings(Store.getLanguage());
         const { site } = Store.getState();
         updateBranding(site, Store.getLanguage());
+        updateTextBlocks(site, Store.getLanguage());
         initRouter.start();
         initGallery.mount();
         heroMediaQuery.addEventListener('change', () => {
