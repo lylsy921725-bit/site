@@ -10,6 +10,21 @@ function getOrigin() {
   }
 }
 
+function normalizeAssetPath(value = '') {
+  if (!value) return '';
+  let cleaned = value.trim().replace(/\\/g, '/');
+  if (!cleaned) return '';
+  if (/^https?:/i.test(cleaned)) {
+    return cleaned;
+  }
+  cleaned = cleaned.replace(/^(\.\.\/)+/, '');
+  cleaned = cleaned.replace(/^(\.\/)+/, '');
+  cleaned = cleaned.replace(/^\/+/, '');
+  cleaned = cleaned.replace(/\/{2,}/g, '/');
+  cleaned = cleaned.replace(/[#?].*$/, '');
+  return cleaned;
+}
+
 function normalizeFolderPath(folderPath = '') {
   if (!folderPath) return '';
   let cleaned = folderPath.trim().replace(/\\/g, '/');
@@ -161,7 +176,10 @@ export async function listFolderImages(folderPath, { revalidate = false } = {}) 
   } else {
     images = await parseHtmlListing(response, baseUrl);
   }
-  const resolved = dedupe(images).map((path) => toRelativePath(path, baseUrl));
+  const resolved = dedupe(images)
+    .map((path) => toRelativePath(path, baseUrl))
+    .map((path) => normalizeAssetPath(path))
+    .filter(Boolean);
   const sorted = resolved.sort((a, b) => a.localeCompare(b, navigator.language || 'zh-CN'));
   folderCache.set(normalized, sorted);
   return sorted;
@@ -171,4 +189,4 @@ export function clearFolderCache() {
   folderCache.clear();
 }
 
-export { normalizeFolderPath };
+export { normalizeFolderPath, normalizeAssetPath };

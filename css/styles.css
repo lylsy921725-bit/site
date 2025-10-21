@@ -844,6 +844,10 @@ img {
   background: rgba(244, 96, 84, 0.24);
 }
 
+.admin-save-banner[data-variant='warning'] {
+  background: rgba(255, 188, 87, 0.24);
+}
+
 .admin-brand {
   display: flex;
   align-items: center;

@@ -1,24 +1,8 @@
 import { Store } from './store.js';
-import { listFolderImages, normalizeFolderPath } from './media.js';
+import { listFolderImages, normalizeFolderPath, normalizeAssetPath } from './media.js';
 
 function normalizeRelativePath(value = '') {
-  if (!value) return '';
-  let cleaned = value.trim().replace(/\\/g, '/');
-  if (!cleaned) return '';
-  if (/^https?:/i.test(cleaned)) {
-    try {
-      const url = new URL(cleaned);
-      cleaned = url.pathname || '';
-    } catch (error) {
-      cleaned = cleaned.replace(/^https?:\/\//i, '');
-    }
-  }
-  cleaned = cleaned.replace(/^(\.\.\/)+/, '');
-  cleaned = cleaned.replace(/^(\.\/)+/, '');
-  cleaned = cleaned.replace(/^\/+/, '');
-  cleaned = cleaned.replace(/\/{2,}/g, '/');
-  cleaned = cleaned.replace(/[#?].*$/, '');
-  return cleaned;
+  return normalizeAssetPath(value);
 }
 
 let screenQuery;
@@ -215,6 +199,96 @@ function initAdminApp() {
     anchor.click();
     document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
+  };
+
+  const hasFileSystemAccess = () => typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+
+  let fsRootHandle = null;
+  let fsDataHandle = null;
+
+  const resetFileHandles = () => {
+    fsRootHandle = null;
+    fsDataHandle = null;
+  };
+
+  const requestRootDirectory = async () => {
+    if (!hasFileSystemAccess()) return null;
+    try {
+      fsRootHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      fsDataHandle = null;
+      return fsRootHandle;
+    } catch (error) {
+      console.warn('目录选择被取消或失败', error);
+      resetFileHandles();
+      return null;
+    }
+  };
+
+  const resolveDataDirectory = async () => {
+    if (!hasFileSystemAccess()) return null;
+    if (!fsRootHandle) {
+      const root = await requestRootDirectory();
+      if (!root) return null;
+    }
+    if (!fsRootHandle) return null;
+    if (!fsDataHandle) {
+      try {
+        fsDataHandle = await fsRootHandle.getDirectoryHandle('data', { create: true });
+      } catch (error) {
+        console.warn('无法访问 data 目录，将使用所选目录', error);
+        fsDataHandle = fsRootHandle;
+      }
+    }
+    return fsDataHandle;
+  };
+
+  const writeJsonFile = async (directoryHandle, filename, contents) => {
+    const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(contents);
+    await writable.close();
+  };
+
+  const formatTimestamp = () => {
+    const now = new Date();
+    const pad = (value) => String(value).padStart(2, '0');
+    const date = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+    const time = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    return `${date}-${time}`;
+  };
+
+  const persistSnapshot = async (payload, { versioned = true } = {}) => {
+    const json = JSON.stringify(payload, null, 2);
+    const versionName = versioned ? `site-${formatTimestamp()}.json` : 'site.json';
+    if (hasFileSystemAccess()) {
+      try {
+        const directory = await resolveDataDirectory();
+        if (directory) {
+          const usingDataFolder = fsDataHandle && fsDataHandle !== fsRootHandle;
+          const prefix = usingDataFolder ? 'data/' : '';
+          await writeJsonFile(directory, 'site.json', json);
+          if (versioned) {
+            await writeJsonFile(directory, versionName, json);
+          }
+          return {
+            ok: true,
+            method: 'filesystem',
+            baseFile: `${prefix}site.json`,
+            versionFile: versioned ? `${prefix}${versionName}` : `${prefix}site.json`
+          };
+        }
+      } catch (error) {
+        console.warn('写入 data 目录失败', error);
+        resetFileHandles();
+      }
+    }
+    triggerJsonDownload(payload, versionName);
+    return {
+      ok: false,
+      method: 'download',
+      baseFile: null,
+      versionFile: versionName
+    };
   };
 
   const announceSave = (message, variant = 'success') => {
@@ -964,18 +1038,33 @@ function initAdminApp() {
     announceSave(ok ? '站点设置已保存' : '站点设置保存失败', ok ? 'success' : 'error');
   });
 
-  logoutBtn?.addEventListener('click', () => {
+  logoutBtn?.addEventListener('click', async () => {
     const snapshot = Store.exportData();
-    triggerJsonDownload(snapshot);
-    announceSave('最新站点数据已保存', 'success');
+    const result = await persistSnapshot(snapshot, { versioned: true });
+    if (result.ok) {
+      const message = result.versionFile && result.versionFile !== result.baseFile
+        ? `已更新 ${result.baseFile} 并生成 ${result.versionFile}`
+        : `已更新 ${result.baseFile}`;
+      announceSave(message, 'success');
+    } else {
+      announceSave('已下载最新站点数据，请放入 data 文件夹', 'warning');
+    }
     sessionStorage.removeItem(AUTH_KEY);
     window.setTimeout(() => {
       window.location.href = 'index.html';
-    }, 200);
+    }, 360);
   });
 
-  exportBtn.addEventListener('click', () => {
-    triggerJsonDownload(Store.exportData());
+  exportBtn.addEventListener('click', async () => {
+    const result = await persistSnapshot(Store.exportData(), { versioned: true });
+    if (result.ok) {
+      const message = result.versionFile && result.versionFile !== result.baseFile
+        ? `已导出到 ${result.baseFile}，并生成 ${result.versionFile}`
+        : `已导出到 ${result.baseFile}`;
+      announceSave(message, 'success');
+    } else {
+      announceSave('已下载最新 site.json，请放入 data 文件夹', 'warning');
+    }
   });
 
   clearDraftBtn.addEventListener('click', () => {

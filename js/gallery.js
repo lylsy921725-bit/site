@@ -1,5 +1,5 @@
 import { Store } from './store.js';
-import { listFolderImages, normalizeFolderPath } from './media.js';
+import { listFolderImages, normalizeFolderPath, normalizeAssetPath } from './media.js';
 
 let grid;
 let chipGroup;
@@ -13,23 +13,35 @@ let currentIndex = 0;
 let observer;
 const folderImageCache = new Map();
 
+function dedupe(list) {
+  return Array.from(new Set(list.filter(Boolean)));
+}
+
 async function resolveProductImages(product) {
-  if (Array.isArray(product.images) && product.images.length) {
-    return product.images;
-  }
-  if (!product.imageFolder) {
-    return [];
-  }
+  const manual = Array.isArray(product.images) ? product.images : [];
+  const baseList = dedupe([product.cover, ...manual].map((item) => normalizeAssetPath(item)));
   const normalized = normalizeFolderPath(product.imageFolder);
+
   if (!normalized) {
-    return [];
+    return baseList;
   }
+
   if (folderImageCache.has(normalized)) {
-    return folderImageCache.get(normalized);
+    const cached = folderImageCache.get(normalized);
+    return dedupe([...cached, ...baseList]);
   }
-  const images = await listFolderImages(normalized);
-  folderImageCache.set(normalized, images);
-  return images;
+
+  try {
+    const images = await listFolderImages(normalized);
+    folderImageCache.set(normalized, images);
+    return dedupe([...images, ...baseList]);
+  } catch (error) {
+    if (baseList.length) {
+      console.warn('图集读取失败，使用已有图片', error);
+      return baseList;
+    }
+    throw error;
+  }
 }
 
 function createSkeleton(count = 6) {
@@ -109,12 +121,21 @@ function observeImage(img, card) {
   });
 }
 
-function openLightbox(images, startIndex = 0) {
+function resolveImageSource(path) {
+  if (!path) return '';
+  try {
+    return new URL(path, window.location.href).href;
+  } catch (error) {
+    return path;
+  }
+}
+
+function openLightbox(images, startIndex = 0, title = '') {
   currentImages = images;
   currentIndex = startIndex;
   const img = currentImages[currentIndex];
-  lightboxImage.src = img;
-  lightboxImage.alt = '';
+  lightboxImage.src = resolveImageSource(img);
+  lightboxImage.alt = title || '';
   lightbox.setAttribute('aria-hidden', 'false');
   lightbox.classList.add('open');
   lightboxClose.focus();
@@ -131,7 +152,7 @@ function closeLightbox() {
 function stepLightbox(delta) {
   if (!currentImages.length) return;
   currentIndex = (currentIndex + delta + currentImages.length) % currentImages.length;
-  lightboxImage.src = currentImages[currentIndex];
+  lightboxImage.src = resolveImageSource(currentImages[currentIndex]);
 }
 
 function buildParams(product) {
@@ -222,7 +243,7 @@ function renderProducts(isInitial = false) {
         showStatus(loadingLabel, { persist: true });
         const images = await resolveProductImages(product);
         if (images.length) {
-          openLightbox(images, 0);
+          openLightbox(images, 0, product.name);
           hideStatus();
         } else {
           const message = Store.getLanguage() === 'zh' ? '暂无可用图集' : 'No gallery images available';
