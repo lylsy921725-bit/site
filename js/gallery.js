@@ -1,5 +1,5 @@
 import { Store } from './store.js';
-import { listFolderImages, normalizeFolderPath, normalizeAssetPath } from './media.js';
+import { normalizeAssetPath } from './media.js';
 
 let grid;
 let chipGroup;
@@ -11,51 +11,29 @@ let lightboxClose;
 let currentImages = [];
 let currentIndex = 0;
 let observer;
-const folderImageCache = new Map();
 
-function extractImagePath(entry) {
-  if (!entry) return '';
-  if (typeof entry === 'string') return entry;
-  if (typeof entry === 'object') {
-    return entry.path || entry.url || entry.href || entry.src || '';
-  }
-  return '';
-}
+export function resolveProductImages(product = {}) {
+  const cover = norm(product.cover, product);
+  const manual = Array.isArray(product.images)
+    ? product.images.map((item) => norm(item, product))
+    : [];
+  return Array.from(new Set([cover, ...manual].filter(Boolean)));
 
-function dedupe(list) {
-  return Array.from(new Set(list.filter(Boolean)));
-}
-
-async function resolveProductImages(product) {
-  const cover = normalizeAssetPath(product.cover);
-  const manual = Array.isArray(product.images) ? product.images : [];
-  const manualPaths = manual
-    .map((item) => normalizeAssetPath(extractImagePath(item)))
-    .filter(Boolean);
-  const baseList = dedupe([cover, ...manualPaths]);
-  const normalized = normalizeFolderPath(product.imageFolder);
-
-  if (!normalized) {
-    return baseList;
-  }
-
-  if (folderImageCache.has(normalized)) {
-    const cached = folderImageCache.get(normalized);
-    return dedupe([...baseList, ...cached]);
-  }
-
-  try {
-    const images = await listFolderImages(normalized);
-    const normalizedImages = images.map((img) => normalizeAssetPath(img)).filter(Boolean);
-    folderImageCache.set(normalized, normalizedImages);
-    const merged = dedupe([...baseList, ...normalizedImages]);
-    return merged.length ? merged : baseList;
-  } catch (error) {
-    if (baseList.length) {
-      console.warn('图集读取失败，使用已有图片', error);
-      return baseList;
+  function norm(input, prod) {
+    if (!input) return '';
+    let s = String(input).trim().replace(/\\/g, '/').replace(/^(\.\/)+/, '');
+    if (!s) return '';
+    if (/^https?:\/\//i.test(s) || s.startsWith('assets/')) {
+      return normalizeAssetPath(s);
     }
-    throw error;
+    const coverPath = prod.cover && String(prod.cover).includes('/')
+      ? String(prod.cover).split('/').slice(0, -1).join('/')
+      : '';
+    const base = coverPath || (prod.slug ? `assets/products/${prod.slug}` : '');
+    const sanitizedBase = base.replace(/\/+/g, '/').replace(/\/?$/, '');
+    const cleanedSegment = s.replace(/^\/+/, '');
+    const finalPath = sanitizedBase ? `${sanitizedBase}/${cleanedSegment}` : cleanedSegment;
+    return normalizeAssetPath(finalPath);
   }
 }
 
@@ -151,9 +129,12 @@ function resolveImageSource(path) {
   }
 }
 
-function openLightbox(images, startIndex = 0, title = '') {
+function openLightbox(images = [], startIndex = 0, options = {}) {
+  if (!Array.isArray(images) || !images.length) return;
+  const { title = '' } = options || {};
   currentImages = images;
-  currentIndex = startIndex;
+  const safeIndex = Number.isFinite(startIndex) ? startIndex : 0;
+  currentIndex = Math.max(0, Math.min(safeIndex, currentImages.length - 1));
   const img = currentImages[currentIndex];
   lightboxImage.src = resolveImageSource(img);
   lightboxImage.alt = title || '';
@@ -254,33 +235,14 @@ function renderProducts(isInitial = false) {
       status.hidden = true;
     };
 
-    const open = async () => {
-      if (card.dataset.loading === 'true') return;
-      card.dataset.loading = 'true';
-      card.classList.add('is-loading');
-      card.setAttribute('aria-busy', 'true');
-      const loadingLabel = Store.getLanguage() === 'zh' ? '载入中…' : 'Loading…';
-      try {
-        showStatus(loadingLabel, { persist: true });
-        const images = await resolveProductImages(product);
-        if (images.length) {
-          openLightbox(images, 0, product.name);
-          hideStatus();
-        } else {
-          const message = Store.getLanguage() === 'zh' ? '暂无可用图集' : 'No gallery images available';
-          showStatus(message);
-        }
-      } catch (error) {
-        console.error('图集读取失败', error);
-        const message = Store.getLanguage() === 'zh' ? '图集读取失败' : 'Unable to load gallery';
+    const open = () => {
+      const images = resolveProductImages(product);
+      if (images.length) {
+        openLightbox(images, 0, { title: product.name });
+        hideStatus();
+      } else {
+        const message = Store.getLanguage() === 'zh' ? '暂无可用图集' : 'No gallery images available';
         showStatus(message);
-      } finally {
-        card.dataset.loading = 'false';
-        card.classList.remove('is-loading');
-        card.removeAttribute('aria-busy');
-        if (!status.hidden && status.textContent === loadingLabel) {
-          hideStatus();
-        }
       }
     };
 
@@ -340,4 +302,4 @@ const initGallery = {
   renderProducts
 };
 
-export { initGallery };
+export { initGallery, resolveProductImages, openLightbox };
