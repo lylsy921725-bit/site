@@ -153,6 +153,7 @@ function initAdminApp() {
   const siteFields = {
     brandZh: document.getElementById('brandZh'),
     brandEn: document.getElementById('brandEn'),
+    logo: document.getElementById('logoPath'),
     accent: document.getElementById('accentColor'),
     navLabels: document.getElementById('navLabels'),
     heroImage: document.getElementById('heroImage'),
@@ -173,6 +174,7 @@ function initAdminApp() {
 
   const adminBrandZh = document.querySelector('.admin-brand-zh');
   const adminBrandEn = document.querySelector('.admin-brand-en');
+  const adminBrandLogo = document.querySelector('.admin-brand img');
 
   let data = { site: {}, categories: [], paramTypes: [], products: [] };
   let pendingProducts = [];
@@ -239,6 +241,15 @@ function initAdminApp() {
   function renderNav() {
     adminBrandZh.textContent = data.site.brandZh || '木纪元智造';
     adminBrandEn.textContent = data.site.brandEn || 'ErawoodFabrication';
+    if (adminBrandLogo) {
+      const fallbackLogo = adminBrandLogo.dataset.defaultLogo || adminBrandLogo.getAttribute('src');
+      if (!adminBrandLogo.dataset.defaultLogo && fallbackLogo) {
+        adminBrandLogo.dataset.defaultLogo = fallbackLogo;
+      }
+      const logoPath = data.site.logo || adminBrandLogo.dataset.defaultLogo || 'assets/logo.svg';
+      adminBrandLogo.src = logoPath;
+      adminBrandLogo.alt = data.site.brandEn || data.site.brandZh || 'Erawood Fabrication';
+    }
   }
 
   function showSection(key) {
@@ -832,6 +843,7 @@ function initAdminApp() {
     if (!data.site) return;
     siteFields.brandZh.value = data.site.brandZh || '';
     siteFields.brandEn.value = data.site.brandEn || '';
+    siteFields.logo.value = data.site.logo || '';
     siteFields.accent.value = data.site.theme?.accent || '#1BB9A5';
     siteFields.navLabels.value = data.site.nav?.join(', ') || '';
     siteFields.heroImage.value = data.site.hero?.image || '';
@@ -861,6 +873,7 @@ function initAdminApp() {
       ...data.site,
       brandZh: siteFields.brandZh.value,
       brandEn: siteFields.brandEn.value,
+      logo: siteFields.logo.value || data.site.logo || 'assets/logo.svg',
       theme: {
         ...data.site.theme,
         accent: siteFields.accent.value,
