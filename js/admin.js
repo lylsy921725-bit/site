@@ -148,6 +148,7 @@ function initAdminApp() {
   const clearDraftBtn = document.getElementById('clearDraft');
   const overlaySlider = document.getElementById('heroOverlay');
   const overlayOutput = document.querySelector('.slider-output span');
+  const saveStatus = document.getElementById('saveStatus');
 
   const siteFields = {
     brandZh: document.getElementById('brandZh'),
@@ -178,6 +179,20 @@ function initAdminApp() {
   let selectedProductId = null;
 
   const clone = (obj) => JSON.parse(JSON.stringify(obj));
+  let statusTimer = null;
+
+  const announceSave = (message, variant = 'success') => {
+    if (!saveStatus) return;
+    if (statusTimer) {
+      window.clearTimeout(statusTimer);
+    }
+    saveStatus.textContent = message;
+    saveStatus.dataset.variant = variant;
+    saveStatus.dataset.state = 'visible';
+    statusTimer = window.setTimeout(() => {
+      saveStatus.dataset.state = 'hidden';
+    }, 2600);
+  };
 
   const renderEditorPlaceholder = () => {
     if (!productEditor) return;
@@ -294,7 +309,8 @@ function initAdminApp() {
   });
 
   saveCategoryBtn.addEventListener('click', () => {
-    Store.updateCategories(data.categories.filter(Boolean));
+    const ok = Store.updateCategories(data.categories.filter(Boolean));
+    announceSave(ok ? '分类已保存' : '分类保存失败', ok ? 'success' : 'error');
   });
 
   function renderParamTypes() {
@@ -366,7 +382,8 @@ function initAdminApp() {
   });
 
   saveParamBtn.addEventListener('click', () => {
-    Store.updateParamTypes(data.paramTypes);
+    const ok = Store.updateParamTypes(data.paramTypes);
+    announceSave(ok ? '参数已保存' : '参数保存失败', ok ? 'success' : 'error');
   });
 
   function renderProducts() {
@@ -799,7 +816,8 @@ function initAdminApp() {
   });
 
   saveProductBtn.addEventListener('click', () => {
-    Store.updateProducts(pendingProducts);
+    const ok = Store.updateProducts(pendingProducts);
+    announceSave(ok ? '产品已保存' : '产品保存失败', ok ? 'success' : 'error');
   });
 
   function updateProductSelection() {
@@ -877,7 +895,8 @@ function initAdminApp() {
       },
       footer: siteFields.footerText.value
     };
-    Store.updateSite(updatedSite);
+    const ok = Store.updateSite(updatedSite);
+    announceSave(ok ? '站点设置已保存' : '站点设置保存失败', ok ? 'success' : 'error');
   });
 
   exportBtn.addEventListener('click', () => {
@@ -907,10 +926,12 @@ function initAdminApp() {
       if (!json.site || !json.products) {
         throw new Error('Invalid site.json');
       }
-      Store.applyImport(json);
+      const ok = Store.applyImport(json);
+      announceSave(ok ? '导入完成' : '导入失败', ok ? 'success' : 'error');
       importFile.value = '';
     } catch (error) {
       console.error('导入失败', error);
+      announceSave('导入失败', 'error');
     }
   });
 

@@ -1,4 +1,5 @@
 const DRAFT_KEY = 'erawood_draft_v1';
+const PERSIST_KEY = 'erawood_saved_v1';
 const LANG_KEY = 'erawood_lang';
 
 const emitter = new EventTarget();
@@ -20,33 +21,76 @@ let filters = {
 
 const clone = (data) => JSON.parse(JSON.stringify(data));
 
-function loadDraft() {
-  const raw = localStorage.getItem(DRAFT_KEY);
+function isPlainObject(value) {
+  return Object.prototype.toString.call(value) === '[object Object]';
+}
+
+function mergeDeep(base = {}, override = {}) {
+  const result = { ...base };
+  Object.keys(override).forEach((key) => {
+    const baseValue = result[key];
+    const overrideValue = override[key];
+    if (isPlainObject(baseValue) && isPlainObject(overrideValue)) {
+      result[key] = mergeDeep(baseValue, overrideValue);
+    } else {
+      result[key] = overrideValue;
+    }
+  });
+  return result;
+}
+
+function readState(key) {
+  const raw = localStorage.getItem(key);
   if (!raw) return null;
   try {
     return JSON.parse(raw);
   } catch (error) {
-    console.warn('草稿解析失败', error);
+    console.warn('本地数据解析失败', error);
     return null;
   }
 }
 
-function persistDraft(data) {
+function writeState(key, data) {
   try {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+    localStorage.setItem(key, JSON.stringify(data));
+    return true;
   } catch (error) {
-    console.warn('草稿保存失败', error);
+    console.error('本地数据保存失败', error);
+    return false;
   }
 }
 
-function mergeState(base, draft) {
-  const source = draft ? { ...base, ...draft } : base;
+function clearState(key) {
+  localStorage.removeItem(key);
+}
+
+function mergeState(base, override) {
+  const baseSite = clone(base?.site || {});
+  const overrideSite = override?.site ? clone(override.site) : null;
   return {
-    site: clone(source.site || base.site || {}),
-    paramTypes: clone(source.paramTypes || []),
-    categories: clone(source.categories || []),
-    products: clone(source.products || [])
+    site: overrideSite ? mergeDeep(baseSite, overrideSite) : baseSite,
+    paramTypes: clone(override?.paramTypes ?? base?.paramTypes ?? []),
+    categories: clone(override?.categories ?? base?.categories ?? []),
+    products: clone(override?.products ?? base?.products ?? [])
   };
+}
+
+function loadDraft() {
+  return readState(DRAFT_KEY);
+}
+
+function loadPersisted() {
+  return readState(PERSIST_KEY);
+}
+
+function commitState() {
+  const snapshot = clone(state);
+  const success = writeState(PERSIST_KEY, snapshot);
+  if (success) {
+    clearState(DRAFT_KEY);
+    emit('saved', { updatedAt: Date.now() });
+  }
+  return success;
 }
 
 function emit(type, detail) {
@@ -67,8 +111,10 @@ const Store = {
   async load() {
     if (state.site) return state;
     const data = await fetchJSON('data/site.json');
+    const persisted = loadPersisted();
     const draft = loadDraft();
-    state = mergeState(data, draft);
+    const base = mergeState(data, persisted);
+    state = draft ? mergeState(base, draft) : base;
     notifyDataChange();
     return state;
   },
@@ -87,12 +133,13 @@ const Store = {
       ...clone(partial)
     };
     if (persist) {
-      persistDraft(state);
+      commitState();
     }
     notifyDataChange();
   },
   clearDraft() {
-    localStorage.removeItem(DRAFT_KEY);
+    clearState(DRAFT_KEY);
+    clearState(PERSIST_KEY);
   },
   getLanguage() {
     return language;
@@ -142,31 +189,36 @@ const Store = {
   },
   updateCategories(newCategories) {
     state.categories = clone(newCategories);
-    persistDraft(state);
+    const success = commitState();
     notifyDataChange();
+    return success;
   },
   updateParamTypes(newParamTypes) {
     state.paramTypes = clone(newParamTypes);
-    persistDraft(state);
+    const success = commitState();
     notifyDataChange();
+    return success;
   },
   updateProducts(newProducts) {
     state.products = clone(newProducts);
-    persistDraft(state);
+    const success = commitState();
     notifyDataChange();
+    return success;
   },
   updateSite(newSite) {
     state.site = clone(newSite);
-    persistDraft(state);
+    const success = commitState();
     notifyDataChange();
+    return success;
   },
   exportData() {
     return clone(state);
   },
   applyImport(data) {
     state = mergeState(data, null);
-    persistDraft(state);
+    const success = commitState();
     notifyDataChange();
+    return success;
   },
   isMobile() {
     return window.matchMedia('(max-width: 767px)').matches;
