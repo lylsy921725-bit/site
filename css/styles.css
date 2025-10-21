@@ -478,7 +478,7 @@ img {
 .product-thumb {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
   border-radius: calc(var(--radius-lg) * 0.75);
   overflow: hidden;
   background: rgba(14, 22, 28, 0.6);

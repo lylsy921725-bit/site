@@ -1,10 +1,61 @@
 const IMAGE_EXTENSIONS = ['.avif', '.gif', '.heic', '.jpeg', '.jpg', '.png', '.svg', '.webp'];
 const folderCache = new Map();
 
+function getOrigin() {
+  if (typeof window === 'undefined') return '';
+  try {
+    return window.location.origin;
+  } catch (error) {
+    return '';
+  }
+}
+
 function normalizeFolderPath(folderPath = '') {
   if (!folderPath) return '';
-  const cleaned = folderPath.replace(/\\/g, '/');
-  return cleaned.endsWith('/') ? cleaned : `${cleaned}/`;
+  let cleaned = folderPath.trim().replace(/\\/g, '/');
+  if (!cleaned) return '';
+
+  const origin = getOrigin();
+
+  if (/^https?:/i.test(cleaned)) {
+    try {
+      const url = new URL(cleaned);
+      cleaned = url.pathname || '';
+    } catch (error) {
+      cleaned = cleaned.replace(/^https?:\/\//i, '');
+    }
+  }
+
+  if (origin && cleaned.startsWith(origin)) {
+    cleaned = cleaned.slice(origin.length);
+  }
+
+  cleaned = cleaned.replace(/^(\.\.\/)+/, '');
+  cleaned = cleaned.replace(/^(\.\/)+/, '');
+  cleaned = cleaned.replace(/^\/+/, '');
+  cleaned = cleaned.replace(/\/{2,}/g, '/');
+
+  if (IMAGE_EXTENSIONS.some((ext) => cleaned.toLowerCase().endsWith(ext))) {
+    const lastSlash = cleaned.lastIndexOf('/');
+    cleaned = lastSlash >= 0 ? cleaned.slice(0, lastSlash + 1) : '';
+  }
+
+  const hashIndex = cleaned.indexOf('#');
+  if (hashIndex !== -1) {
+    cleaned = cleaned.slice(0, hashIndex);
+  }
+  const queryIndex = cleaned.indexOf('?');
+  if (queryIndex !== -1) {
+    cleaned = cleaned.slice(0, queryIndex);
+  }
+
+  if (!cleaned) return '';
+
+  if (!cleaned.endsWith('/')) {
+    cleaned = `${cleaned}/`;
+  }
+
+  return cleaned;
 }
 
 function isImage(path = '') {
@@ -87,8 +138,9 @@ export async function listFolderImages(folderPath, { revalidate = false } = {}) 
   if (!revalidate && folderCache.has(normalized)) {
     return folderCache.get(normalized);
   }
-  const baseUrl = new URL(normalized, window.location.href);
-  const response = await fetch(normalized, { cache: 'no-store' });
+  const origin = getOrigin() || 'http://localhost';
+  const baseUrl = new URL(normalized, origin.endsWith('/') ? origin : `${origin}/`);
+  const response = await fetch(baseUrl.href, { cache: 'no-store' });
   if (!response.ok) {
     throw new Error(`无法访问文件夹 ${normalized}`);
   }

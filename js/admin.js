@@ -1,6 +1,26 @@
 import { Store } from './store.js';
 import { listFolderImages, normalizeFolderPath } from './media.js';
 
+function normalizeRelativePath(value = '') {
+  if (!value) return '';
+  let cleaned = value.trim().replace(/\\/g, '/');
+  if (!cleaned) return '';
+  if (/^https?:/i.test(cleaned)) {
+    try {
+      const url = new URL(cleaned);
+      cleaned = url.pathname || '';
+    } catch (error) {
+      cleaned = cleaned.replace(/^https?:\/\//i, '');
+    }
+  }
+  cleaned = cleaned.replace(/^(\.\.\/)+/, '');
+  cleaned = cleaned.replace(/^(\.\/)+/, '');
+  cleaned = cleaned.replace(/^\/+/, '');
+  cleaned = cleaned.replace(/\/{2,}/g, '/');
+  cleaned = cleaned.replace(/[#?].*$/, '');
+  return cleaned;
+}
+
 let screenQuery;
 let pendingViewportUpdate = false;
 
@@ -555,6 +575,12 @@ function initAdminApp() {
     coverInput.addEventListener('input', () => {
       product.cover = coverInput.value;
     });
+    coverInput.addEventListener('blur', () => {
+      if (!coverInput.value.trim()) return;
+      const normalized = normalizeRelativePath(coverInput.value);
+      coverInput.value = normalized;
+      product.cover = normalized;
+    });
     coverField.append(coverLabel, coverInput);
 
     const folderField = document.createElement('div');
@@ -638,14 +664,26 @@ function initAdminApp() {
         folderStatus.dataset.state = 'warning';
         return;
       }
+      if (/^https?:/i.test(raw)) {
+        folderStatus.textContent = '请使用相对路径，例如 assets/products/example/';
+        folderStatus.dataset.state = 'warning';
+        return;
+      }
       const normalized = normalizeFolderPath(raw);
+      if (!normalized) {
+        folderStatus.textContent = '请输入有效的相对路径';
+        folderStatus.dataset.state = 'warning';
+        product.imageFolder = '';
+        folderBtn.disabled = false;
+        return;
+      }
       folderStatus.textContent = '读取中…';
       folderStatus.dataset.state = 'loading';
       folderBtn.disabled = true;
       try {
         const images = await listFolderImages(normalized, { revalidate: true });
         product.imageFolder = normalized;
-        product.images = images;
+        product.images = images.map((item) => normalizeRelativePath(item)).filter(Boolean);
         folderInput.value = normalized;
         if (!product.cover && images.length) {
           product.cover = images[0];
