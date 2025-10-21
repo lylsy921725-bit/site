@@ -110,12 +110,26 @@ async function fetchJSON(url) {
 const Store = {
   async load() {
     if (state.site) return state;
-    const data = await fetchJSON('data/site.json');
     const persisted = loadPersisted();
     const draft = loadDraft();
-    const base = mergeState(data, persisted);
-    state = draft ? mergeState(base, draft) : base;
-    notifyDataChange();
+
+    if (persisted?.site) {
+      state = mergeState(persisted, draft);
+      notifyDataChange();
+    }
+
+    try {
+      const data = await fetchJSON('data/site.json');
+      const base = mergeState(data, persisted);
+      state = draft ? mergeState(base, draft) : base;
+      notifyDataChange();
+    } catch (error) {
+      if (!state.site) {
+        throw error;
+      }
+      console.warn('远程数据加载失败，使用已保存的站点数据', error);
+    }
+
     return state;
   },
   on(event, handler) {

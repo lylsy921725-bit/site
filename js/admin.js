@@ -205,6 +205,18 @@ function initAdminApp() {
   const clone = (obj) => JSON.parse(JSON.stringify(obj));
   let statusTimer = null;
 
+  const triggerJsonDownload = (payload, filename = 'site.json') => {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
   const announceSave = (message, variant = 'success') => {
     if (!saveStatus) return;
     if (statusTimer) {
@@ -953,20 +965,17 @@ function initAdminApp() {
   });
 
   logoutBtn?.addEventListener('click', () => {
+    const snapshot = Store.exportData();
+    triggerJsonDownload(snapshot);
+    announceSave('最新站点数据已保存', 'success');
     sessionStorage.removeItem(AUTH_KEY);
-    window.location.href = 'index.html';
+    window.setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 200);
   });
 
   exportBtn.addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(Store.exportData(), null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'site.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    triggerJsonDownload(Store.exportData());
   });
 
   clearDraftBtn.addEventListener('click', () => {
