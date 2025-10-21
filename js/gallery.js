@@ -174,6 +174,7 @@ function buildParams(product) {
 }
 
 function renderProducts(isInitial = false) {
+  if (!grid) return;
   if (isInitial) {
     createSkeleton();
   }
